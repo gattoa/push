@@ -50,6 +50,7 @@
 	function generate() {
 		generateMockPlan(data);
 		localStorage.setItem('push_onboarding_complete', 'true');
+		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
 		goto('/');
 	}
 </script>
