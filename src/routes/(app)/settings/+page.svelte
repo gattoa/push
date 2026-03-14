@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type {
-		OnboardingData, AgeRange, ExperienceLevel, TrainingGoal, InjuryArea,
+		OnboardingData, ExperienceLevel, TrainingGoal, InjuryArea,
 		AppPreferences, WeightUnit, ReviewDay, RestTimerSeconds
 	} from '$lib/types';
 	import BottomSheet from '$lib/components/BottomSheet.svelte';
 	import SegmentedToggle from '$lib/components/SegmentedToggle.svelte';
 
 	let data: OnboardingData = $state({
-		ageRange: null,
+		dateOfBirth: null,
+		gender: null,
 		experienceLevel: null,
 		trainingDays: null,
 		goals: [],
@@ -76,7 +77,7 @@
 
 	// Derived display values
 	let experienceDisplay = $derived(data.experienceLevel ? experienceLabels[data.experienceLevel] : 'Not set');
-	let ageDisplay = $derived(data.ageRange ? ageLabels[data.ageRange] : 'Not set');
+	let ageDisplay = $derived(data.dateOfBirth ? data.dateOfBirth : 'Not set');
 	let daysDisplay = $derived(data.trainingDays ? `${data.trainingDays} days` : 'Not set');
 	let goalsDisplay = $derived(
 		data.goals.length > 0
@@ -261,9 +262,9 @@
 <!-- Bottom Sheets -->
 <BottomSheet
 	bind:open={sheetOpen.age}
-	title="Age Range"
+	title="Date of Birth"
 	options={ageOptions}
-	bind:value={data.ageRange}
+	bind:value={data.dateOfBirth}
 	onchange={markChanged}
 />
 

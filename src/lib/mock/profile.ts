@@ -543,3 +543,234 @@ export function computeExerciseHistory(exercisedbId: string, weeks: WeekHistory[
 		sessions
 	};
 }
+
+// === Profile V2 Functions ===
+
+export function computeTotalPRCount(weeks: WeekHistory[]): number {
+	return computePersonalRecords(weeks).length;
+}
+
+// === Muscle Group Mapping ===
+
+export const MUSCLE_GROUPS = [
+	'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps',
+	'Quads', 'Hamstrings', 'Glutes', 'Calves'
+] as const;
+
+export type MuscleGroup = typeof MUSCLE_GROUPS[number];
+
+const EXERCISE_MUSCLES: Record<string, MuscleGroup[]> = {
+	'Bench Press':           ['Chest', 'Triceps', 'Shoulders'],
+	'Shoulder Press':        ['Shoulders', 'Triceps'],
+	'Tricep Pushdown':       ['Triceps'],
+	'Barbell Row':           ['Back', 'Biceps'],
+	'Pull-ups':              ['Back', 'Biceps'],
+	'Bicep Curls':           ['Biceps'],
+	'Barbell Squat':         ['Quads', 'Glutes', 'Hamstrings'],
+	'Romanian Deadlift':     ['Hamstrings', 'Glutes', 'Back'],
+	'Leg Press':             ['Quads', 'Glutes'],
+	'Calf Raises':           ['Calves'],
+	'Incline Dumbbell Press':['Chest', 'Shoulders', 'Triceps'],
+	'Lateral Raises':        ['Shoulders'],
+	'Dips':                  ['Chest', 'Triceps'],
+	'Lat Pulldown':          ['Back', 'Biceps'],
+	'Seated Cable Row':      ['Back', 'Biceps'],
+	'Hammer Curls':          ['Biceps']
+};
+
+export function getMusclesForExercise(exerciseName: string): MuscleGroup[] {
+	return EXERCISE_MUSCLES[exerciseName] ?? [];
+}
+
+// === Weekly Momentum ===
+
+export interface WeekMomentum {
+	workoutsCompleted: number;
+	workoutsTotal: number;
+	musclesHit: Map<MuscleGroup, number>; // muscle → number of sets
+	totalMuscleGroups: number;
+	muscleGroupsHit: number;
+	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; muscles: MuscleGroup[] }[];
+	streak: number;
+	weekPRs: PersonalRecord[];
+}
+
+export function computeWeekMomentum(weeks: WeekHistory[]): WeekMomentum {
+	const currentWeek = weeks[weeks.length - 1];
+	const stats = computeWeekStats(currentWeek);
+	const streak = computeStreak(weeks);
+	const weekIdx = weeks.length - 1;
+	const weekPRs = computeWeekPRs(weekIdx, weeks);
+
+	// Compute muscles hit this week
+	const musclesHit = new Map<MuscleGroup, number>();
+
+	const dayCompletions = currentWeek.days
+		.sort((a, b) => a.day_of_week - b.day_of_week)
+		.map(day => {
+			const dayExercises = currentWeek.exercises.filter(e => e.planned_day_id === day.id);
+			const isCompleted = !day.is_rest_day && !day.is_review_day &&
+				isDayCompleted(day, currentWeek.exercises, currentWeek.setLogs);
+
+			const dayMuscles: Set<MuscleGroup> = new Set();
+
+			if (isCompleted) {
+				for (const ex of dayExercises) {
+					const muscles = getMusclesForExercise(ex.exercise_name);
+					const completedSets = currentWeek.setLogs.filter(
+						s => s.planned_exercise_id === ex.id && s.completed
+					).length;
+
+					for (const m of muscles) {
+						dayMuscles.add(m);
+						musclesHit.set(m, (musclesHit.get(m) ?? 0) + completedSets);
+					}
+				}
+			}
+
+			return {
+				dayOfWeek: day.day_of_week,
+				label: day.label,
+				completed: isCompleted,
+				muscles: Array.from(dayMuscles)
+			};
+		});
+
+	return {
+		workoutsCompleted: stats.workoutsCompleted,
+		workoutsTotal: stats.workoutsTotal,
+		musclesHit,
+		totalMuscleGroups: MUSCLE_GROUPS.length,
+		muscleGroupsHit: musclesHit.size,
+		dayCompletions,
+		streak: streak.current,
+		weekPRs
+	};
+}
+
+export interface LastSessionExercise {
+	exerciseName: string;
+	exercisedbId: string;
+	currentSets: SetResult[];
+	previousBestSet: { weight: number; reps: number } | null;
+	currentBestSet: { weight: number; reps: number } | null;
+	isPR: boolean;
+}
+
+export interface LastSessionData {
+	date: string;
+	dayLabel: string;
+	exercises: LastSessionExercise[];
+}
+
+export function getLastCompletedSession(weeks: WeekHistory[]): LastSessionData | null {
+	// Walk backwards through weeks and days to find the most recent completed training day
+	for (let wi = weeks.length - 1; wi >= 0; wi--) {
+		const week = weeks[wi];
+		const trainingDays = week.days
+			.filter(d => !d.is_rest_day && !d.is_review_day)
+			.sort((a, b) => b.day_of_week - a.day_of_week); // Reverse order (most recent first)
+
+		for (const day of trainingDays) {
+			const dayExercises = week.exercises.filter(e => e.planned_day_id === day.id);
+			if (dayExercises.length === 0) continue;
+
+			const daySetLogs = week.setLogs.filter(s =>
+				dayExercises.some(e => e.id === s.planned_exercise_id)
+			);
+			const hasCompleted = daySetLogs.some(s => s.completed);
+			if (!hasCompleted) continue;
+
+			// Found the most recent completed day
+			const exercises: LastSessionExercise[] = dayExercises
+				.sort((a, b) => a.order - b.order)
+				.map(ex => {
+					const exSetLogs = daySetLogs
+						.filter(s => s.planned_exercise_id === ex.id && s.completed)
+						.sort((a, b) => a.set_number - b.set_number);
+
+					const currentSets: SetResult[] = exSetLogs.map(s => ({
+						setNumber: s.set_number,
+						weight: s.actual_weight,
+						reps: s.actual_reps,
+						completed: s.completed
+					}));
+
+					// Find best set in current session (highest e1RM)
+					let currentBestSet: { weight: number; reps: number } | null = null;
+					let currentBestE1RM = 0;
+					for (const s of exSetLogs) {
+						if (s.actual_weight !== null && s.actual_weight > 0 && s.actual_reps !== null) {
+							const e1rm = epley1RM(s.actual_weight, s.actual_reps);
+							if (e1rm > currentBestE1RM) {
+								currentBestE1RM = e1rm;
+								currentBestSet = { weight: s.actual_weight, reps: s.actual_reps };
+							}
+						}
+					}
+
+					// Find previous best for this exercise (from all prior sessions)
+					const previousBestSet = getPreviousBestSet(ex.exercisedb_id, wi, day.day_of_week, weeks);
+
+					// Check if this is a PR
+					const allTimePRs = computePersonalRecords(weeks);
+					const exercisePR = allTimePRs.find(pr => pr.exerciseName === ex.exercise_name);
+					const isPR = exercisePR !== null && currentBestE1RM > 0 &&
+						Math.round(currentBestE1RM) >= (exercisePR?.estimated1RM ?? Infinity);
+
+					return {
+						exerciseName: ex.exercise_name,
+						exercisedbId: ex.exercisedb_id,
+						currentSets,
+						previousBestSet,
+						currentBestSet,
+						isPR
+					};
+				});
+
+			const date = computeDayDate(week.weekStart, day.day_of_week);
+			return { date, dayLabel: day.label, exercises };
+		}
+	}
+
+	return null;
+}
+
+function getPreviousBestSet(
+	exercisedbId: string,
+	currentWeekIdx: number,
+	currentDayOfWeek: number,
+	weeks: WeekHistory[]
+): { weight: number; reps: number } | null {
+	let bestE1RM = 0;
+	let bestSet: { weight: number; reps: number } | null = null;
+
+	for (let wi = 0; wi <= currentWeekIdx; wi++) {
+		const week = weeks[wi];
+		const matchingExercises = week.exercises.filter(e => e.exercisedb_id === exercisedbId);
+
+		for (const ex of matchingExercises) {
+			const day = week.days.find(d => d.id === ex.planned_day_id);
+			if (!day) continue;
+
+			// Skip the current session itself
+			if (wi === currentWeekIdx && day.day_of_week >= currentDayOfWeek) continue;
+
+			const exSetLogs = week.setLogs.filter(
+				s => s.planned_exercise_id === ex.id && s.completed
+			);
+
+			for (const s of exSetLogs) {
+				if (s.actual_weight !== null && s.actual_weight > 0 && s.actual_reps !== null) {
+					const e1rm = epley1RM(s.actual_weight, s.actual_reps);
+					if (e1rm > bestE1RM) {
+						bestE1RM = e1rm;
+						bestSet = { weight: s.actual_weight, reps: s.actual_reps };
+					}
+				}
+			}
+		}
+	}
+
+	return bestSet;
+}

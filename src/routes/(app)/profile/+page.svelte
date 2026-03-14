@@ -1,46 +1,59 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { OnboardingData, AppPreferences } from '$lib/types';
-	import SegmentedToggle from '$lib/components/SegmentedToggle.svelte';
-	import PhotoUpload from '$lib/components/PhotoUpload.svelte';
-	import PhotoViewer from '$lib/components/PhotoViewer.svelte';
-	import { getAllPhotos, type ProgressPhoto } from '$lib/stores/photos';
+	import type {
+		OnboardingData, TrainingGoal, InjuryArea, Gender, AppPreferences
+	} from '$lib/types';
+	import BottomSheet from '$lib/components/BottomSheet.svelte';
+	import AccountSheet from '$lib/components/AccountSheet.svelte';
 	import { mockWeekHistories } from '$lib/mock/profile-history';
-	import CalendarGrid from '$lib/components/CalendarGrid.svelte';
-	import DayDetailPanel from '$lib/components/DayDetailPanel.svelte';
-	import WeekProgress from '$lib/components/WeekProgress.svelte';
 	import {
-		computeWeekStats,
+		computeWeekMomentum,
 		computeStreak,
-		computePersonalRecords,
-		computeLifetimeStats,
-		computeCalendarWeeks,
-		computeVolumeDelta,
-		computeRecentPRs,
-		formatVolume,
-		convertWeight,
-		type CalendarDay
+		MUSCLE_GROUPS,
+		type MuscleGroup
 	} from '$lib/mock/profile';
 
-	let activeView = $state('recent');
-	let onboardingData: OnboardingData | null = $state(null);
+	let accountSheetOpen = $state(false);
+	let email = $state('');
 	let units: 'lbs' | 'kg' = $state('lbs');
-	let photos: ProgressPhoto[] = $state([]);
-	let viewerOpen = $state(false);
-	let viewerPhotoId = $state('');
-	let viewerDate = $state('');
-	let recentSelectedDay = $state<CalendarDay | null>(null);
-	let alltimeSelectedDay = $state<CalendarDay | null>(null);
 
-	const viewOptions = [
-		{ value: 'recent', label: 'Recent' },
-		{ value: 'alltime', label: 'All Time' }
-	];
+	let data: OnboardingData = $state({
+		dateOfBirth: null,
+		gender: null,
+		experienceLevel: null,
+		trainingDays: null,
+		goals: [],
+		injuries: []
+	});
+
+	let sheetOpen = $state({
+		injuries: false,
+		experience: false,
+		days: false,
+		goals: false,
+		gender: false
+	});
 
 	onMount(() => {
 		const rawData = localStorage.getItem('push_onboarding_data');
 		if (rawData) {
-			try { onboardingData = JSON.parse(rawData); } catch { /* ignore */ }
+			try {
+				const parsed = JSON.parse(rawData);
+				// Migrate old ageRange to dateOfBirth if needed
+				if (parsed.ageRange && !parsed.dateOfBirth) {
+					const midpoints: Record<string, string> = {
+						under_35: '1998-01-01',
+						'35_50': '1982-01-01',
+						'50_plus': '1970-01-01'
+					};
+					parsed.dateOfBirth = midpoints[parsed.ageRange] ?? null;
+					delete parsed.ageRange;
+				}
+				if (!parsed.gender) parsed.gender = null;
+				data = parsed;
+				// Persist migrated data
+				localStorage.setItem('push_onboarding_data', JSON.stringify(data));
+			} catch { /* ignore */ }
 		}
 		const rawPrefs = localStorage.getItem('push_preferences');
 		if (rawPrefs) {
@@ -49,231 +62,258 @@
 				if (prefs.units) units = prefs.units;
 			} catch { /* ignore */ }
 		}
-		loadPhotos();
+		const rawEmail = localStorage.getItem('push_email');
+		if (rawEmail) email = rawEmail;
 	});
 
-	async function loadPhotos() {
-		try {
-			photos = await getAllPhotos();
-		} catch { /* IndexedDB not available in SSR */ }
+	function saveData() {
+		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
 	}
 
-	// Computed stats
-	const currentWeek = mockWeekHistories[mockWeekHistories.length - 1];
-	const currentWeekStats = $derived(computeWeekStats(currentWeek));
-	const streak = $derived(computeStreak(mockWeekHistories));
-	const lifetimeStats = $derived(computeLifetimeStats(mockWeekHistories));
-	const personalRecords = $derived(computePersonalRecords(mockWeekHistories));
-	const calendarWeeks = $derived(computeCalendarWeeks(mockWeekHistories));
-	const volumeDelta = $derived(computeVolumeDelta(mockWeekHistories));
-	const recentPRs = $derived(computeRecentPRs(mockWeekHistories));
+	$effect(() => {
+		if (email) localStorage.setItem('push_email', email);
+	});
 
+	// Momentum data
+	const momentum = $derived(computeWeekMomentum(mockWeekHistories));
+	const streakData = $derived(computeStreak(mockWeekHistories));
+	const avatarInitial = $derived(email ? email[0].toUpperCase() : 'P');
+	const weekProgress = $derived(
+		momentum.workoutsTotal > 0
+			? Math.round((momentum.workoutsCompleted / momentum.workoutsTotal) * 100)
+			: 0
+	);
+
+	const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+	function muscleHitLevel(muscle: MuscleGroup): 'none' | 'hit' | 'heavy' {
+		const sets = momentum.musclesHit.get(muscle) ?? 0;
+		if (sets === 0) return 'none';
+		if (sets >= 6) return 'heavy';
+		return 'hit';
+	}
+
+	// Display labels
 	const experienceLabels: Record<string, string> = {
 		beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced'
 	};
-	let experienceLabel = $derived.by(() => {
-		const level = onboardingData?.experienceLevel;
-		return level ? experienceLabels[level] : null;
-	});
+	const goalLabels: Record<string, string> = {
+		build_muscle: 'Build Muscle', lose_fat: 'Lose Fat',
+		get_stronger: 'Get Stronger', general_fitness: 'General Fitness'
+	};
+	const injuryLabels: Record<string, string> = {
+		shoulder: 'Shoulder', back: 'Back', knee: 'Knee'
+	};
+	const genderLabels: Record<string, string> = {
+		male: 'Male', female: 'Female', prefer_not_to_say: ''
+	};
 
-	function openViewer(photo: ProgressPhoto) {
-		viewerPhotoId = photo.id;
-		viewerDate = photo.date;
-		viewerOpen = true;
+	function computeAge(dob: string | null): number | null {
+		if (!dob) return null;
+		const birth = new Date(dob + 'T00:00:00');
+		const today = new Date();
+		let age = today.getFullYear() - birth.getFullYear();
+		const m = today.getMonth() - birth.getMonth();
+		if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+		return age;
 	}
 
-	function formatDate(iso: string): string {
-		const d = new Date(iso + 'T00:00:00');
-		const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-		return `${months[d.getMonth()]} ${d.getDate()}`;
-	}
+	let ageDisplay = $derived(computeAge(data.dateOfBirth));
+	let genderDisplay = $derived(data.gender ? genderLabels[data.gender] : '');
+	let experienceDisplay = $derived(data.experienceLevel ? experienceLabels[data.experienceLevel] : 'Not set');
+	let daysDisplay = $derived(data.trainingDays ? `${data.trainingDays} days` : 'Not set');
 
-	function w(lbs: number): string {
-		return `${convertWeight(lbs, units).toLocaleString()} ${units}`;
-	}
+	// Bottom sheet options
+	const genderOptions: { value: string | number; label: string }[] = [
+		{ value: 'male', label: 'Male' },
+		{ value: 'female', label: 'Female' },
+		{ value: 'prefer_not_to_say', label: 'Prefer not to say' }
+	];
+	const experienceOptions: { value: string | number; label: string }[] = [
+		{ value: 'beginner', label: 'Beginner' },
+		{ value: 'intermediate', label: 'Intermediate' },
+		{ value: 'advanced', label: 'Advanced' }
+	];
+	const daySheetOptions: { value: string | number; label: string }[] = [
+		{ value: 3, label: '3 days' },
+		{ value: 4, label: '4 days' },
+		{ value: 5, label: '5 days' },
+		{ value: 6, label: '6 days' }
+	];
+	const goalSheetOptions: { value: string | number; label: string }[] = [
+		{ value: 'build_muscle', label: 'Build Muscle' },
+		{ value: 'lose_fat', label: 'Lose Fat' },
+		{ value: 'get_stronger', label: 'Get Stronger' },
+		{ value: 'general_fitness', label: 'General Fitness' }
+	];
+	const injurySheetOptions: { value: string | number; label: string }[] = [
+		{ value: '__none__', label: 'None' },
+		{ value: 'shoulder', label: 'Shoulder' },
+		{ value: 'back', label: 'Back' },
+		{ value: 'knee', label: 'Knee' }
+	];
+	let injurySheetValues = $derived(
+		data.injuries.length === 0
+			? ['__none__'] as (string | number)[]
+			: data.injuries as (string | number)[]
+	);
 </script>
 
 <div class="profile">
 	<!-- Header -->
 	<div class="profile-header">
+		<button class="avatar-btn" onclick={() => accountSheetOpen = true}>
+			<div class="avatar">
+				<span class="avatar-initial">{avatarInitial}</span>
+			</div>
+		</button>
 		<h1>Push Athlete</h1>
-		<p class="subtitle">
-			{#if experienceLabel}{experienceLabel} · {/if}Member since Feb 2026
-		</p>
-	</div>
-
-	<div class="toggle-wrap">
-		<SegmentedToggle options={viewOptions} bind:value={activeView} />
-	</div>
-
-	{#if activeView === 'recent'}
-		<!-- Stats Bar -->
-		<div class="card stats-bar">
-			<div class="stat">
-				<span class="stat-value">{streak.current}</span>
-				<span class="stat-label">Streak</span>
-			</div>
-			<div class="stat-divider"></div>
-			<div class="stat">
-				<span class="stat-value">{currentWeekStats.workoutsCompleted}/{currentWeekStats.workoutsTotal}</span>
-				<span class="stat-label">This Week</span>
-			</div>
-			<div class="stat-divider"></div>
-			<div class="stat">
-				<span class="stat-value">
-					{formatVolume(convertWeight(currentWeekStats.volume, units))} <span class="stat-unit">{units}</span>
-					{#if volumeDelta !== null && volumeDelta !== 0}
-						<span class="delta-badge" class:positive={volumeDelta > 0} class:negative={volumeDelta < 0}>
-							{volumeDelta > 0 ? '+' : ''}{volumeDelta}%
-						</span>
-					{/if}
-				</span>
-				<span class="stat-label">Volume</span>
-			</div>
-		</div>
-
-		<!-- This Week + Last Week -->
-		<div class="group">
-			<p class="group-label">Activity</p>
-			<WeekProgress
-				weeks={calendarWeeks}
-				selectedDay={recentSelectedDay}
-				onSelectDay={(day) => { recentSelectedDay = day; }}
-			/>
-			{#if recentSelectedDay}
-				<DayDetailPanel day={recentSelectedDay} {units} />
+		{#if email}
+			<p class="subtitle">{email}</p>
+		{/if}
+		<div class="context-chips">
+			{#if data.experienceLevel}
+				<button class="chip chip-subtle" onclick={() => sheetOpen.experience = true}>{experienceDisplay}</button>
+			{/if}
+			{#if ageDisplay !== null}
+				<span class="chip-text">{ageDisplay}</span>
+			{/if}
+			{#if genderDisplay}
+				<button class="chip chip-subtle" onclick={() => sheetOpen.gender = true}>{genderDisplay}</button>
+			{/if}
+			{#if data.trainingDays}
+				<button class="chip chip-subtle" onclick={() => sheetOpen.days = true}>{daysDisplay}</button>
+			{/if}
+			{#if data.injuries.length > 0}
+				{#each data.injuries as inj}
+					<button class="chip chip-subtle" onclick={() => sheetOpen.injuries = true}>{injuryLabels[inj]}</button>
+				{/each}
 			{/if}
 		</div>
-
-		<!-- Recent PRs -->
-		{#if recentPRs.length > 0}
-			<div class="group">
-				<p class="group-label">Recent PRs</p>
-				<div class="card">
-					{#each recentPRs as pr, i (pr.exerciseName)}
-						{#if i > 0}<div class="divider"></div>{/if}
-						<div class="row static pr-row">
-							<div class="pr-info">
-								<span class="row-label">{pr.exerciseName}</span>
-								<span class="pr-detail">{w(pr.weight)} × {pr.reps}</span>
-							</div>
-							<span class="row-value pr-value">{w(pr.estimated1RM)}</span>
-						</div>
-					{/each}
-				</div>
+		{#if data.goals.length > 0}
+			<div class="goal-chips">
+				{#each data.goals as g}
+					<button class="chip chip-goal" onclick={() => sheetOpen.goals = true}>{goalLabels[g]}</button>
+				{/each}
 			</div>
 		{/if}
+	</div>
 
-		<!-- Progress Photos -->
-		<div class="group">
-			<div class="group-header">
-				<p class="group-label">Progress Photos</p>
-				<PhotoUpload onupload={loadPhotos} />
-			</div>
-			{#if photos.length > 0}
-				<div class="photo-strip">
-					{#each photos.slice(0, 8) as photo (photo.id)}
-						<button class="photo-thumb" onclick={() => openViewer(photo)}>
-							<img src={photo.thumbnailUrl} alt="Progress {photo.date}" />
-							<span class="photo-date">{formatDate(photo.date)}</span>
-						</button>
-					{/each}
+	<!-- This Week — the momentum centerpiece -->
+	<div class="week-card card">
+		<div class="week-header">
+			<span class="week-title">This Week</span>
+			<span class="week-fraction">{momentum.workoutsCompleted}/{momentum.workoutsTotal}</span>
+		</div>
+
+		<!-- Progress bar -->
+		<div class="progress-track">
+			<div class="progress-fill" style="width: {weekProgress}%"></div>
+		</div>
+
+		<!-- Day dots — the week filling in -->
+		<div class="day-dots">
+			{#each momentum.dayCompletions as day, i}
+				<div class="day-dot-col">
+					<span class="day-dot-label">{DAY_LABELS[i]}</span>
+					<div
+						class="day-dot"
+						class:completed={day.completed}
+						class:rest={day.label === 'Rest'}
+						class:review={day.label === 'Review'}
+					>
+						{#if day.completed}
+							<svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+								<polyline points="3,8 6.5,11.5 13,4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+							</svg>
+						{:else if day.label === 'Rest'}
+							<span class="dot-rest">·</span>
+						{:else if day.label === 'Review'}
+							<span class="dot-review">R</span>
+						{/if}
+					</div>
+					{#if day.completed && day.muscles.length > 0}
+						<span class="day-muscle-label">{day.label}</span>
+					{/if}
 				</div>
-			{:else}
-				<div class="card empty-state">
-					<p>Take your first progress photo to start tracking your transformation.</p>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Muscles trained — body coverage filling in -->
+	<div class="group">
+		<div class="group-header-row">
+			<p class="group-label">Muscles Trained</p>
+			<span class="coverage-count">{momentum.muscleGroupsHit}/{momentum.totalMuscleGroups}</span>
+		</div>
+		<div class="muscle-grid">
+			{#each MUSCLE_GROUPS as muscle}
+				{@const level = muscleHitLevel(muscle)}
+				<div class="muscle-pill" class:hit={level === 'hit'} class:heavy={level === 'heavy'}>
+					<span class="muscle-name">{muscle}</span>
+					{#if level !== 'none'}
+						<span class="muscle-sets">{momentum.musclesHit.get(muscle)} sets</span>
+					{/if}
+				</div>
+			{/each}
+		</div>
+	</div>
+
+	<!-- Streak + PRs — breadcrumbs of consistency -->
+	{#if momentum.streak > 0 || momentum.weekPRs.length > 0}
+		<div class="wins">
+			{#if momentum.streak > 0}
+				<div class="win-item">
+					<span class="win-number">{momentum.streak}</span>
+					<span class="win-label">{momentum.streak === 1 ? 'day' : 'days'} strong</span>
 				</div>
 			{/if}
-		</div>
-
-	{:else}
-		<!-- Activity Calendar -->
-		<div class="group">
-			<p class="group-label">Activity</p>
-			<CalendarGrid
-				weeks={calendarWeeks}
-				selectedDay={alltimeSelectedDay}
-				onSelectDay={(day) => { alltimeSelectedDay = day; }}
-			/>
-			{#if alltimeSelectedDay}
-				<DayDetailPanel day={alltimeSelectedDay} {units} />
-			{/if}
-		</div>
-
-		<!-- Lifetime Stats -->
-		<div class="group">
-			<p class="group-label">Lifetime Stats</p>
-			<div class="card">
-				<div class="row static">
-					<span class="row-label">Workouts</span>
-					<span class="row-value">{lifetimeStats.totalWorkouts}</span>
-				</div>
-				<div class="divider"></div>
-				<div class="row static">
-					<span class="row-label">Volume Lifted</span>
-					<span class="row-value">{w(lifetimeStats.totalVolume)}</span>
-				</div>
-				<div class="divider"></div>
-				<div class="row static">
-					<span class="row-label">Longest Streak</span>
-					<span class="row-value">{lifetimeStats.longestStreak} days</span>
-				</div>
-				<div class="divider"></div>
-				<div class="row static">
-					<span class="row-label">Weeks Active</span>
-					<span class="row-value">{lifetimeStats.weeksActive}</span>
-				</div>
-			</div>
-		</div>
-
-		<!-- Personal Records -->
-		<div class="group">
-			<p class="group-label">Personal Records</p>
-			{#if personalRecords.length > 0}
-				<div class="card">
-					{#each personalRecords as pr, i (pr.exerciseName)}
-						{#if i > 0}<div class="divider"></div>{/if}
-						<div class="row static pr-row">
-							<div class="pr-info">
-								<span class="row-label">{pr.exerciseName}</span>
-								<span class="pr-detail">{w(pr.weight)} × {pr.reps}</span>
-							</div>
-							<span class="row-value pr-value">{w(pr.estimated1RM)}</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<div class="card empty-state">
-					<p>Complete your first workout to start tracking personal records.</p>
-				</div>
-			{/if}
-		</div>
-
-		<!-- All Progress Photos -->
-		<div class="group">
-			<div class="group-header">
-				<p class="group-label">Progress Photos</p>
-				<PhotoUpload onupload={loadPhotos} />
-			</div>
-			{#if photos.length > 0}
-				<div class="photo-grid">
-					{#each photos as photo (photo.id)}
-						<button class="photo-grid-item" onclick={() => openViewer(photo)}>
-							<img src={photo.thumbnailUrl} alt="Progress {photo.date}" />
-							<span class="photo-date">{formatDate(photo.date)}</span>
-						</button>
-					{/each}
-				</div>
-			{:else}
-				<div class="card empty-state">
-					<p>Take your first progress photo to start tracking your transformation.</p>
+			{#if momentum.weekPRs.length > 0}
+				<div class="win-item">
+					<span class="win-number">{momentum.weekPRs.length}</span>
+					<span class="win-label">{momentum.weekPRs.length === 1 ? 'PR' : 'PRs'} this week</span>
 				</div>
 			{/if}
 		</div>
 	{/if}
+
+	<!-- PR details if any -->
+	{#if momentum.weekPRs.length > 0}
+		<div class="pr-list">
+			{#each momentum.weekPRs as pr (pr.exerciseName)}
+				<div class="pr-chip">
+					<span class="pr-badge">PR</span>
+					<span class="pr-name">{pr.exerciseName}</span>
+				</div>
+			{/each}
+		</div>
+	{/if}
+
 </div>
 
-<PhotoViewer photoId={viewerPhotoId} date={viewerDate} bind:open={viewerOpen} />
+<AccountSheet bind:open={accountSheetOpen} bind:email />
+
+<BottomSheet bind:open={sheetOpen.experience} title="Experience Level" options={experienceOptions} bind:value={data.experienceLevel} onchange={saveData} />
+<BottomSheet bind:open={sheetOpen.gender} title="Gender" options={genderOptions} bind:value={data.gender} onchange={saveData} />
+<BottomSheet bind:open={sheetOpen.days} title="Days per Week" options={daySheetOptions} bind:value={data.trainingDays} onchange={saveData} />
+<BottomSheet bind:open={sheetOpen.goals} title="Goals" options={goalSheetOptions} bind:values={data.goals} multiSelect={true} onchange={saveData} />
+<BottomSheet
+	bind:open={sheetOpen.injuries}
+	title="Injuries or Limitations"
+	options={injurySheetOptions}
+	values={injurySheetValues}
+	multiSelect={true}
+	onchange={() => {
+		if (injurySheetValues.includes('__none__') && injurySheetValues.length > 1) {
+			data.injuries = injurySheetValues.filter(v => v !== '__none__') as InjuryArea[];
+		} else if (injurySheetValues.includes('__none__')) {
+			data.injuries = [];
+		} else {
+			data.injuries = injurySheetValues as InjuryArea[];
+		}
+		saveData();
+	}}
+/>
 
 <style>
 	.profile {
@@ -287,8 +327,39 @@
 
 	/* Header */
 	.profile-header {
-		text-align: center;
-		padding: 1rem 0 0.25rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 1.5rem 0 0.5rem;
+	}
+
+	.avatar-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+		margin-bottom: 0.75rem;
+	}
+
+	.avatar-btn:hover .avatar {
+		transform: scale(1.05);
+	}
+
+	.avatar {
+		width: 72px;
+		height: 72px;
+		border-radius: 50%;
+		background: #000;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: transform 0.15s ease;
+	}
+
+	.avatar-initial {
+		font-size: 1.75rem;
+		font-weight: 700;
+		color: #fff;
 	}
 
 	h1 {
@@ -303,9 +374,170 @@
 		margin: 0.25rem 0 0;
 	}
 
-	.toggle-wrap {
+	.goal-chips {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: center;
+		gap: 0.375rem;
+		margin-top: 0.625rem;
+	}
+
+	.context-chips {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		align-items: center;
+		gap: 0.125rem 0.5rem;
+		margin-top: 0.375rem;
+	}
+
+	.chip {
+		border: none;
+		cursor: pointer;
+		font-family: inherit;
+		white-space: nowrap;
+		border-radius: 100px;
+	}
+
+	.chip-goal {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: #000;
+		background: #f0f0f0;
+		padding: 0.3125rem 0.75rem;
+	}
+
+	.chip-goal:hover {
+		background: #e5e5e5;
+	}
+
+	.chip-subtle {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		color: #999;
+		background: none;
+		padding: 0.125rem 0;
+	}
+
+	.chip-subtle:hover {
+		color: #666;
+	}
+
+	.chip-text {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		color: #999;
+		padding: 0.125rem 0;
+	}
+
+	/* Card base */
+	.card {
+		background: #fff;
+		border: 1px solid #e8e8e8;
+		border-radius: 12px;
+		overflow: hidden;
+	}
+
+	/* Week Card — the momentum centerpiece */
+	.week-card {
+		padding: 1rem;
+	}
+
+	.week-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+
+	.week-title {
+		font-size: 0.9375rem;
+		font-weight: 700;
+		color: #000;
+	}
+
+	.week-fraction {
+		font-size: 0.875rem;
+		font-weight: 700;
+		color: #000;
+	}
+
+	/* Progress bar */
+	.progress-track {
+		height: 6px;
+		background: #f0f0f0;
+		border-radius: 3px;
+		overflow: hidden;
+		margin-bottom: 1rem;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: #000;
+		border-radius: 3px;
+		transition: width 0.3s ease;
+	}
+
+	/* Day dots */
+	.day-dots {
+		display: flex;
+		justify-content: space-between;
+	}
+
+	.day-dot-col {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+		flex: 1;
+	}
+
+	.day-dot-label {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		color: #bbb;
+	}
+
+	.day-dot {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		border: 2px solid #e8e8e8;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #ccc;
+		font-size: 0.75rem;
+	}
+
+	.day-dot.completed {
+		background: #000;
+		border-color: #000;
+		color: #fff;
+	}
+
+	.day-dot.rest,
+	.day-dot.review {
+		border-color: #f0f0f0;
+	}
+
+	.dot-rest {
+		font-size: 1.25rem;
+		line-height: 1;
+		color: #ddd;
+	}
+
+	.dot-review {
+		font-size: 0.625rem;
+		font-weight: 700;
+		color: #ccc;
+	}
+
+	.day-muscle-label {
+		font-size: 0.5625rem;
+		color: #999;
+		font-weight: 500;
+		text-align: center;
 	}
 
 	/* Groups */
@@ -325,209 +557,129 @@
 		padding-left: 0.25rem;
 	}
 
-	.group-header {
+	.group-header-row {
 		display: flex;
-		align-items: center;
 		justify-content: space-between;
-	}
-
-	/* Cards */
-	.card {
-		background: #fff;
-		border: 1px solid #e8e8e8;
-		border-radius: 12px;
-		overflow: hidden;
-	}
-
-	.row {
-		display: flex;
 		align-items: center;
-		width: 100%;
-		padding: 0.875rem 1rem;
-		gap: 0.5rem;
+		padding-right: 0.25rem;
 	}
 
-	.row.static {
-		cursor: default;
-	}
-
-	.row-label {
-		font-size: 0.9375rem;
-		font-weight: 500;
-		color: #000;
-		flex-shrink: 0;
-	}
-
-	.row-value {
-		font-size: 0.9375rem;
-		color: #666;
-		margin-left: auto;
-		text-align: right;
-	}
-
-	.divider {
-		height: 1px;
-		background: #f0f0f0;
-		margin: 0 1rem;
-	}
-
-	/* Stats Bar */
-	.stats-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-evenly;
-		padding: 1.25rem 0.5rem;
-	}
-
-	.stat {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
-	.stat-value {
-		font-size: 1.5rem;
-		font-weight: 800;
-		color: #000;
-	}
-
-	.stat-unit {
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: #999;
-	}
-
-	.stat-label {
-		font-size: 0.6875rem;
-		color: #999;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		font-weight: 600;
-	}
-
-	.stat-divider {
-		width: 1px;
-		height: 2.5rem;
-		background: #f0f0f0;
-	}
-
-	/* Volume Delta Badge */
-	.delta-badge {
-		font-size: 0.6875rem;
-		font-weight: 600;
-		padding: 0.0625rem 0.375rem;
-		border-radius: 8px;
-		margin-left: 0.25rem;
-		vertical-align: middle;
-	}
-
-	.delta-badge.positive {
-		background: #e8f5e9;
-		color: #2e7d32;
-	}
-
-	.delta-badge.negative {
-		background: #fce4ec;
-		color: #c62828;
-	}
-
-	/* Photo Strip (Recent View) */
-	.photo-strip {
-		display: flex;
-		gap: 0.5rem;
-		overflow-x: auto;
-		padding: 0.25rem 0;
-		-webkit-overflow-scrolling: touch;
-		scrollbar-width: none;
-	}
-
-	.photo-strip::-webkit-scrollbar {
-		display: none;
-	}
-
-	.photo-thumb {
-		flex-shrink: 0;
-		width: 80px;
-		background: none;
-		border: none;
-		padding: 0;
-		cursor: pointer;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.photo-thumb img {
-		width: 80px;
-		height: 80px;
-		object-fit: cover;
-		border-radius: 8px;
-		border: 1px solid #e8e8e8;
-	}
-
-	.photo-date {
-		font-size: 0.6875rem;
-		color: #999;
-		text-align: center;
-	}
-
-	/* Photo Grid (All Time View) */
-	.photo-grid {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 0.5rem;
-	}
-
-	.photo-grid-item {
-		background: none;
-		border: none;
-		padding: 0;
-		cursor: pointer;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.photo-grid-item img {
-		width: 100%;
-		aspect-ratio: 1;
-		object-fit: cover;
-		border-radius: 8px;
-		border: 1px solid #e8e8e8;
-	}
-
-	/* Empty State */
-	.empty-state {
-		padding: 1.5rem 1rem;
-		text-align: center;
-	}
-
-	.empty-state p {
-		color: #999;
-		font-size: 0.875rem;
-		margin: 0;
-	}
-
-	/* Personal Records */
-	.pr-row {
-		flex-direction: row;
-		align-items: center;
-	}
-
-	.pr-info {
-		display: flex;
-		flex-direction: column;
-		gap: 0.125rem;
-	}
-
-	.pr-detail {
+	.coverage-count {
 		font-size: 0.75rem;
-		color: #999;
-	}
-
-	.pr-value {
 		font-weight: 700;
 		color: #000;
 	}
+
+	/* Muscle Grid */
+	.muscle-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+	}
+
+	.muscle-pill {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.375rem 0.75rem;
+		border-radius: 100px;
+		border: 1px solid #e8e8e8;
+		background: #fff;
+		transition: all 0.2s ease;
+	}
+
+	.muscle-pill.hit {
+		background: #f5f5f5;
+		border-color: #ccc;
+	}
+
+	.muscle-pill.heavy {
+		background: #000;
+		border-color: #000;
+	}
+
+	.muscle-name {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: #bbb;
+	}
+
+	.muscle-pill.hit .muscle-name {
+		color: #333;
+	}
+
+	.muscle-pill.heavy .muscle-name {
+		color: #fff;
+	}
+
+	.muscle-sets {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		color: #999;
+	}
+
+	.muscle-pill.heavy .muscle-sets {
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	/* Wins */
+	.wins {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+	}
+
+	.win-item {
+		display: flex;
+		align-items: baseline;
+		gap: 0.375rem;
+	}
+
+	.win-number {
+		font-size: 1.75rem;
+		font-weight: 800;
+		color: #000;
+		line-height: 1;
+	}
+
+	.win-label {
+		font-size: 0.8125rem;
+		color: #999;
+		font-weight: 500;
+	}
+
+	/* PR chips */
+	.pr-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+	}
+
+	.pr-chip {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.375rem 0.75rem;
+		background: #fff;
+		border: 1px solid #e8e8e8;
+		border-radius: 100px;
+	}
+
+	.pr-badge {
+		font-size: 0.5625rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		background: #000;
+		color: #fff;
+		padding: 0.125rem 0.375rem;
+		border-radius: 4px;
+	}
+
+	.pr-name {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: #000;
+	}
+
 </style>

@@ -1,4 +1,4 @@
-import type { OnboardingData, PlannedDay, PlannedExercise, PlannedSet, InjuryArea, AgeRange } from '$lib/types';
+import type { OnboardingData, PlannedDay, PlannedExercise, PlannedSet, InjuryArea } from '$lib/types';
 
 export interface GeneratedPlan {
 	days: PlannedDay[];
@@ -249,23 +249,23 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 	const goals = data.goals.length > 0 ? data.goals : ['build_muscle' as const];
 	const primaryGoal = goals[0];
 
-	const age = data.ageRange ?? 'under_35';
+	// Derive age from DOB
+	let userAge = 25; // default
+	if (data.dateOfBirth) {
+		const birth = new Date(data.dateOfBirth + 'T00:00:00');
+		const today = new Date();
+		userAge = today.getFullYear() - birth.getFullYear();
+		const m = today.getMonth() - birth.getMonth();
+		if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) userAge--;
+	}
 
 	// Experience multipliers
 	const weightMultiplier = experience === 'beginner' ? 0.6 : experience === 'advanced' ? 1.15 : 1.0;
 	const maxSetsPerExercise = experience === 'beginner' ? 2 : experience === 'advanced' ? 4 : 3;
 
 	// Age adjustments — scale weight down and enforce minimum reps for older lifters
-	const ageWeightMultiplier: Record<AgeRange, number> = {
-		under_35: 1.0,
-		'35_50': 0.9,
-		'50_plus': 0.75
-	};
-	const ageMinReps: Record<AgeRange, number> = {
-		under_35: 1,
-		'35_50': 5,
-		'50_plus': 8
-	};
+	const ageWeightMultiplier = userAge >= 50 ? 0.75 : userAge >= 35 ? 0.9 : 1.0;
+	const ageMinReps = userAge >= 50 ? 8 : userAge >= 35 ? 5 : 1;
 
 	// Goal adjustments
 	let repAdjust = 0;
@@ -336,10 +336,10 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 
 			for (let setIdx = 0; setIdx < templateSets.length; setIdx++) {
 				const s = templateSets[setIdx];
-				const adjustedReps = Math.max(ageMinReps[age], s.reps + repAdjust);
+				const adjustedReps = Math.max(ageMinReps, s.reps + repAdjust);
 				const adjustedWeight = tmpl.isBodyweight
 					? null
-					: roundWeight(tmpl.baseWeight * s.weightMultiplier * weightMultiplier * goalWeightMultiplier * ageWeightMultiplier[age]);
+					: roundWeight(tmpl.baseWeight * s.weightMultiplier * weightMultiplier * goalWeightMultiplier * ageWeightMultiplier);
 
 				sets.push({
 					id: `gen-ps-${dayIdx}-${exIdx}-${setIdx + 1}`,

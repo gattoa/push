@@ -11,7 +11,8 @@
 
 	let currentStep = $state(0);
 	let data: OnboardingData = $state({
-		ageRange: null,
+		dateOfBirth: null,
+		gender: null,
 		experienceLevel: null,
 		trainingDays: null,
 		goals: [],
@@ -23,7 +24,7 @@
 
 	let canContinue = $derived(
 		currentStep === 0
-			? data.ageRange !== null && data.experienceLevel !== null
+			? data.dateOfBirth !== null && data.gender !== null && data.experienceLevel !== null
 			: currentStep === 1
 				? data.trainingDays !== null
 				: currentStep === 2
@@ -66,7 +67,7 @@
 	<div class="content">
 		{#key currentStep}
 			{#if currentStep === 0}
-				<StepAboutYou bind:ageRange={data.ageRange} bind:experienceLevel={data.experienceLevel} />
+				<StepAboutYou bind:dateOfBirth={data.dateOfBirth} bind:gender={data.gender} bind:experienceLevel={data.experienceLevel} />
 			{:else if currentStep === 1}
 				<StepTrainingDays bind:value={data.trainingDays} />
 			{:else if currentStep === 2}

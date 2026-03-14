@@ -1,22 +1,27 @@
 <script lang="ts">
-	import type { AgeRange, ExperienceLevel } from '$lib/types';
+	import type { ExperienceLevel, Gender } from '$lib/types';
 	import SelectionCard from './SelectionCard.svelte';
 
-	let { ageRange = $bindable(), experienceLevel = $bindable() } = $props<{
-		ageRange: AgeRange | null;
+	let {
+		dateOfBirth = $bindable(),
+		gender = $bindable(),
+		experienceLevel = $bindable()
+	} = $props<{
+		dateOfBirth: string | null;
+		gender: Gender | null;
 		experienceLevel: ExperienceLevel | null;
 	}>();
-
-	const ageOptions: { value: AgeRange; label: string }[] = [
-		{ value: 'under_35', label: '18–34' },
-		{ value: '35_50', label: '35–50' },
-		{ value: '50_plus', label: '51+' }
-	];
 
 	const experienceOptions: { level: ExperienceLevel; label: string; subtitle: string }[] = [
 		{ level: 'beginner', label: 'Beginner', subtitle: 'Learning the basics and building form' },
 		{ level: 'intermediate', label: 'Intermediate', subtitle: 'Confident with compound lifts' },
 		{ level: 'advanced', label: 'Advanced', subtitle: 'Strong foundation, ready for heavier loads' }
+	];
+
+	const genderOptions: { value: Gender; label: string }[] = [
+		{ value: 'male', label: 'Male' },
+		{ value: 'female', label: 'Female' },
+		{ value: 'prefer_not_to_say', label: 'Prefer not to say' }
 	];
 </script>
 
@@ -37,16 +42,28 @@
 		</div>
 	</div>
 
-	<div class="section">
-		<p class="label">Age range</p>
-		<div class="age-options">
-			{#each ageOptions as opt}
-				<SelectionCard
-					label={opt.label}
-					selected={ageRange === opt.value}
-					onclick={() => (ageRange = opt.value)}
-				/>
-			{/each}
+	<div class="row-sections">
+		<div class="section">
+			<p class="label">Date of birth</p>
+			<input
+				type="date"
+				class="dob-input"
+				value={dateOfBirth ?? ''}
+				onchange={(e) => (dateOfBirth = e.currentTarget.value || null)}
+			/>
+		</div>
+
+		<div class="section">
+			<p class="label">Gender</p>
+			<div class="gender-options">
+				{#each genderOptions as opt}
+					<SelectionCard
+						label={opt.label}
+						selected={gender === opt.value}
+						onclick={() => (gender = opt.value)}
+					/>
+				{/each}
+			</div>
 		</div>
 	</div>
 </div>
@@ -78,15 +95,38 @@
 		margin: 0;
 	}
 
-	.age-options {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 0.5rem;
+	.row-sections {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
 	}
 
 	.experience-options {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+	}
+
+	.gender-options {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.5rem;
+	}
+
+	.dob-input {
+		width: 100%;
+		padding: 0.75rem 1rem;
+		border: 2px solid #e5e5e5;
+		border-radius: 12px;
+		font-size: 1rem;
+		font-family: inherit;
+		color: #000;
+		background: #fff;
+		outline: none;
+		box-sizing: border-box;
+	}
+
+	.dob-input:focus {
+		border-color: #000;
 	}
 </style>

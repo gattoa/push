@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { OnboardingData, ExperienceLevel, AgeRange, TrainingGoal, InjuryArea } from '$lib/types';
+	import type { OnboardingData, ExperienceLevel, Gender, TrainingGoal, InjuryArea } from '$lib/types';
 	import SelectionCard from './SelectionCard.svelte';
 
 	let { data = $bindable(), ongenerate } = $props<{
@@ -13,8 +13,18 @@
 		editing = editing === section ? null : section;
 	}
 
-	const ageLabels: Record<string, string> = { under_35: '18–34', '35_50': '35–50', '50_plus': '51+' };
+	function computeAge(dob: string | null): number | null {
+		if (!dob) return null;
+		const birth = new Date(dob + 'T00:00:00');
+		const today = new Date();
+		let age = today.getFullYear() - birth.getFullYear();
+		const m = today.getMonth() - birth.getMonth();
+		if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+		return age;
+	}
+
 	const experienceLabels: Record<string, string> = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
+	const genderLabels: Record<string, string> = { male: 'Male', female: 'Female', prefer_not_to_say: 'Prefer not to say' };
 	const goalLabels: Record<string, string> = {
 		build_muscle: 'Build Muscle',
 		lose_fat: 'Lose Fat',
@@ -29,10 +39,10 @@
 		{ value: 'advanced', label: 'Advanced' }
 	];
 
-	const ageOptions: { value: AgeRange; label: string }[] = [
-		{ value: 'under_35', label: '18–34' },
-		{ value: '35_50', label: '35–50' },
-		{ value: '50_plus', label: '51+' }
+	const genderOptions: { value: Gender; label: string }[] = [
+		{ value: 'male', label: 'Male' },
+		{ value: 'female', label: 'Female' },
+		{ value: 'prefer_not_to_say', label: 'Prefer not to say' }
 	];
 
 	const dayOptions = [3, 4, 5, 6];
@@ -78,8 +88,8 @@
 				<div class="card-summary">
 					<span class="card-label">Experience</span>
 					<span class="card-value">{data.experienceLevel ? experienceLabels[data.experienceLevel] : '—'}</span>
-					<span class="card-label">Age</span>
-					<span class="card-value">{data.ageRange ? ageLabels[data.ageRange] : '—'}</span>
+					<span class="card-label">Age · Gender</span>
+					<span class="card-value">{computeAge(data.dateOfBirth) ?? '—'} · {data.gender ? genderLabels[data.gender] : '—'}</span>
 				</div>
 				<span class="edit">{editing === 'about' ? 'Done' : 'Edit'}</span>
 			</button>
@@ -95,13 +105,20 @@
 							/>
 						{/each}
 					</div>
-					<p class="edit-label">Age range</p>
+					<p class="edit-label">Date of birth</p>
+					<input
+						type="date"
+						class="dob-input"
+						value={data.dateOfBirth ?? ''}
+						onchange={(e) => (data.dateOfBirth = e.currentTarget.value || null)}
+					/>
+					<p class="edit-label">Gender</p>
 					<div class="edit-options-row">
-						{#each ageOptions as opt}
+						{#each genderOptions as opt}
 							<SelectionCard
 								label={opt.label}
-								selected={data.ageRange === opt.value}
-								onclick={() => (data.ageRange = opt.value)}
+								selected={data.gender === opt.value}
+								onclick={() => (data.gender = opt.value)}
 							/>
 						{/each}
 					</div>
@@ -304,6 +321,23 @@
 
 	.edit-options-2x2 {
 		grid-template-columns: 1fr 1fr;
+	}
+
+	.dob-input {
+		width: 100%;
+		padding: 0.75rem 1rem;
+		border: 2px solid #e5e5e5;
+		border-radius: 12px;
+		font-size: 1rem;
+		font-family: inherit;
+		color: #000;
+		background: #fff;
+		outline: none;
+		box-sizing: border-box;
+	}
+
+	.dob-input:focus {
+		border-color: #000;
 	}
 
 	.generate-btn {
