@@ -91,6 +91,18 @@ export interface OnboardingData {
 	injuries: InjuryArea[]; // empty = no injuries
 }
 
+// === App Preferences ===
+
+export type WeightUnit = 'lbs' | 'kg';
+export type ReviewDay = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=Mon ... 6=Sun
+export type RestTimerSeconds = 60 | 90 | 120 | 180;
+
+export interface AppPreferences {
+	reviewDay: ReviewDay;
+	units: WeightUnit;
+	restTimerDefault: RestTimerSeconds;
+}
+
 // === ExerciseDB API types ===
 
 export interface ExerciseDBSearchResult {

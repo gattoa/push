@@ -1,10 +1,13 @@
 <script lang="ts">
 	import type { PlannedSet, SetLog } from '$lib/types';
+	import { getPreferences } from '$lib/stores/preferences';
 
 	let { plannedSet, setLog }: {
 		plannedSet: PlannedSet;
 		setLog: SetLog;
 	} = $props();
+
+	const units = getPreferences().units;
 
 	let completed = $derived(setLog.completed);
 	let weight = $derived(setLog.actual_weight ?? plannedSet.target_weight ?? 0);
@@ -34,7 +37,7 @@
 	</label>
 	<label>
 		<input type="number" value={weight} onchange={updateWeight} min="0" style="width:60px" />
-		{plannedSet.target_weight === null ? '(bw)' : 'lbs'}
+		{plannedSet.target_weight === null ? '(bw)' : units}
 	</label>
 	x
 	<label>

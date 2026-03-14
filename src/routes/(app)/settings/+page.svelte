@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { OnboardingData, AgeRange, ExperienceLevel, TrainingGoal, InjuryArea } from '$lib/types';
+	import type {
+		OnboardingData, AgeRange, ExperienceLevel, TrainingGoal, InjuryArea,
+		AppPreferences, WeightUnit, ReviewDay, RestTimerSeconds
+	} from '$lib/types';
+	import BottomSheet from '$lib/components/BottomSheet.svelte';
+	import SegmentedToggle from '$lib/components/SegmentedToggle.svelte';
 
 	let data: OnboardingData = $state({
 		ageRange: null,
@@ -10,18 +15,33 @@
 		injuries: []
 	});
 
-	let expandedSection: string | null = $state(null);
+	let prefs: AppPreferences = $state({
+		reviewDay: 6,
+		units: 'lbs',
+		restTimerDefault: 90
+	});
+
+	let sheetOpen = $state({
+		age: false,
+		injuries: false,
+		experience: false,
+		days: false,
+		goals: false,
+		reviewDay: false,
+		restTimer: false
+	});
+
 	let hasChanges = $state(false);
 	let saved = $state(false);
 
 	onMount(() => {
-		const raw = localStorage.getItem('push_onboarding_data');
-		if (raw) {
-			try {
-				data = JSON.parse(raw);
-			} catch {
-				// ignore
-			}
+		const rawData = localStorage.getItem('push_onboarding_data');
+		if (rawData) {
+			try { data = JSON.parse(rawData); } catch { /* ignore */ }
+		}
+		const rawPrefs = localStorage.getItem('push_preferences');
+		if (rawPrefs) {
+			try { prefs = { ...prefs, ...JSON.parse(rawPrefs) }; } catch { /* ignore */ }
 		}
 	});
 
@@ -30,12 +50,9 @@
 		saved = false;
 	}
 
-	function toggle(section: string) {
-		expandedSection = expandedSection === section ? null : section;
-	}
-
 	function save() {
 		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
+		localStorage.setItem('push_preferences', JSON.stringify(prefs));
 		hasChanges = false;
 		saved = true;
 		setTimeout(() => { saved = false; }, 2000);
@@ -43,29 +60,19 @@
 
 	// Display labels
 	const ageLabels: Record<string, string> = {
-		under_35: '18–34',
-		'35_50': '35–50',
-		'50_plus': '51+'
+		under_35: '18–34', '35_50': '35–50', '50_plus': '51+'
 	};
-
 	const experienceLabels: Record<string, string> = {
-		beginner: 'Beginner',
-		intermediate: 'Intermediate',
-		advanced: 'Advanced'
+		beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced'
 	};
-
 	const goalLabels: Record<string, string> = {
-		build_muscle: 'Build Muscle',
-		lose_fat: 'Lose Fat',
-		get_stronger: 'Get Stronger',
-		general_fitness: 'General Fitness'
+		build_muscle: 'Build Muscle', lose_fat: 'Lose Fat',
+		get_stronger: 'Get Stronger', general_fitness: 'General Fitness'
 	};
-
 	const injuryLabels: Record<string, string> = {
-		shoulder: 'Shoulder',
-		back: 'Back',
-		knee: 'Knee'
+		shoulder: 'Shoulder', back: 'Back', knee: 'Knee'
 	};
+	const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 	// Derived display values
 	let experienceDisplay = $derived(data.experienceLevel ? experienceLabels[data.experienceLevel] : 'Not set');
@@ -81,49 +88,76 @@
 			? data.injuries.map((i: InjuryArea) => injuryLabels[i]).join(', ')
 			: 'None'
 	);
+	let reviewDayDisplay = $derived(dayNames[prefs.reviewDay] ?? 'Sun');
+	let restTimerDisplay = $derived(
+		prefs.restTimerDefault >= 120
+			? `${prefs.restTimerDefault / 60} min`
+			: `${prefs.restTimerDefault}s`
+	);
 
-	// Option sets for expanded editors
-	const experienceOptions: { value: ExperienceLevel; label: string }[] = [
-		{ value: 'beginner', label: 'Beginner' },
-		{ value: 'intermediate', label: 'Intermediate' },
-		{ value: 'advanced', label: 'Advanced' }
-	];
-
-	const ageOptions: { value: AgeRange; label: string }[] = [
+	// Option sets for bottom sheets
+	const ageOptions: { value: string | number; label: string }[] = [
 		{ value: 'under_35', label: '18–34' },
 		{ value: '35_50', label: '35–50' },
 		{ value: '50_plus', label: '51+' }
 	];
-
-	const dayOptions = [3, 4, 5, 6];
-
-	const goalOptions: { value: TrainingGoal; label: string }[] = [
+	const experienceOptions: { value: string | number; label: string }[] = [
+		{ value: 'beginner', label: 'Beginner' },
+		{ value: 'intermediate', label: 'Intermediate' },
+		{ value: 'advanced', label: 'Advanced' }
+	];
+	const daySheetOptions: { value: string | number; label: string }[] = [
+		{ value: 3, label: '3 days' },
+		{ value: 4, label: '4 days' },
+		{ value: 5, label: '5 days' },
+		{ value: 6, label: '6 days' }
+	];
+	const goalSheetOptions: { value: string | number; label: string }[] = [
 		{ value: 'build_muscle', label: 'Build Muscle' },
 		{ value: 'lose_fat', label: 'Lose Fat' },
 		{ value: 'get_stronger', label: 'Get Stronger' },
 		{ value: 'general_fitness', label: 'General Fitness' }
 	];
-
-	const injuryOptions: { value: InjuryArea; label: string }[] = [
+	const injurySheetOptions: { value: string | number; label: string }[] = [
+		{ value: '__none__', label: 'None' },
 		{ value: 'shoulder', label: 'Shoulder' },
 		{ value: 'back', label: 'Back' },
 		{ value: 'knee', label: 'Knee' }
 	];
+	const reviewDaySheetOptions: { value: string | number; label: string }[] = [
+		{ value: 0, label: 'Monday' }, { value: 1, label: 'Tuesday' },
+		{ value: 2, label: 'Wednesday' }, { value: 3, label: 'Thursday' },
+		{ value: 4, label: 'Friday' }, { value: 5, label: 'Saturday' },
+		{ value: 6, label: 'Sunday' }
+	];
+	const restTimerSheetOptions: { value: string | number; label: string }[] = [
+		{ value: 60, label: '60 seconds' },
+		{ value: 90, label: '90 seconds' },
+		{ value: 120, label: '2 minutes' },
+		{ value: 180, label: '3 minutes' }
+	];
+	const unitOptions: { value: string; label: string }[] = [
+		{ value: 'lbs', label: 'lbs' },
+		{ value: 'kg', label: 'kg' }
+	];
 
-	function toggleGoal(goal: TrainingGoal) {
-		if (data.goals.includes(goal)) {
-			data.goals = data.goals.filter((g: TrainingGoal) => g !== goal);
-		} else {
-			data.goals = [...data.goals, goal];
-		}
-		markChanged();
+	// Injury values proxy (maps between InjuryArea[] and the sheet's string[])
+	let injurySheetValues = $derived(
+		data.injuries.length === 0
+			? ['__none__'] as (string | number)[]
+			: data.injuries as (string | number)[]
+	);
+
+	function handleInjuryChange() {
+		// After the sheet toggles values, sync back
+		// Check in a tick so the binding has propagated
 	}
 
-	function toggleInjury(area: InjuryArea) {
-		if (data.injuries.includes(area)) {
-			data.injuries = data.injuries.filter((a: InjuryArea) => a !== area);
+	function syncInjuries(newValues: (string | number)[]) {
+		if (newValues.includes('__none__')) {
+			data.injuries = [];
 		} else {
-			data.injuries = [...data.injuries, area];
+			data.injuries = newValues as InjuryArea[];
 		}
 		markChanged();
 	}
@@ -132,124 +166,83 @@
 <div class="settings">
 	<h1>Settings</h1>
 
-	<div class="group">
-		<p class="group-label">Training</p>
-		<div class="card">
-			<!-- Experience Level -->
-			<button class="row" onclick={() => toggle('experience')}>
-				<span class="row-label">Experience</span>
-				<span class="row-value">{experienceDisplay}</span>
-				<span class="chevron" class:open={expandedSection === 'experience'}></span>
-			</button>
-			{#if expandedSection === 'experience'}
-				<div class="row-detail">
-					<div class="pill-group">
-						{#each experienceOptions as opt}
-							<button
-								class="pill"
-								class:active={data.experienceLevel === opt.value}
-								onclick={() => { data.experienceLevel = opt.value; markChanged(); }}
-							>{opt.label}</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<div class="divider"></div>
-
-			<!-- Training Days -->
-			<button class="row" onclick={() => toggle('days')}>
-				<span class="row-label">Days per week</span>
-				<span class="row-value">{daysDisplay}</span>
-				<span class="chevron" class:open={expandedSection === 'days'}></span>
-			</button>
-			{#if expandedSection === 'days'}
-				<div class="row-detail">
-					<div class="pill-group">
-						{#each dayOptions as d}
-							<button
-								class="pill"
-								class:active={data.trainingDays === d}
-								onclick={() => { data.trainingDays = d; markChanged(); }}
-							>{d}</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<div class="divider"></div>
-
-			<!-- Goals -->
-			<button class="row" onclick={() => toggle('goals')}>
-				<span class="row-label">Goals</span>
-				<span class="row-value truncate">{goalsDisplay}</span>
-				<span class="chevron" class:open={expandedSection === 'goals'}></span>
-			</button>
-			{#if expandedSection === 'goals'}
-				<div class="row-detail">
-					<div class="chip-group">
-						{#each goalOptions as opt}
-							<button
-								class="chip"
-								class:active={data.goals.includes(opt.value)}
-								onclick={() => toggleGoal(opt.value)}
-							>{opt.label}</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
+	<!-- Email placeholder -->
+	<div class="card">
+		<div class="row static">
+			<span class="row-label">Email</span>
+			<span class="row-value muted">Not signed in</span>
 		</div>
 	</div>
 
+	<!-- About You -->
 	<div class="group">
 		<p class="group-label">About You</p>
 		<div class="card">
-			<!-- Age Range -->
-			<button class="row" onclick={() => toggle('age')}>
+			<button class="row" onclick={() => sheetOpen.age = true}>
 				<span class="row-label">Age range</span>
 				<span class="row-value">{ageDisplay}</span>
-				<span class="chevron" class:open={expandedSection === 'age'}></span>
 			</button>
-			{#if expandedSection === 'age'}
-				<div class="row-detail">
-					<div class="pill-group">
-						{#each ageOptions as opt}
-							<button
-								class="pill"
-								class:active={data.ageRange === opt.value}
-								onclick={() => { data.ageRange = opt.value; markChanged(); }}
-							>{opt.label}</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
 
 			<div class="divider"></div>
 
-			<!-- Injuries -->
-			<button class="row" onclick={() => toggle('injuries')}>
+			<button class="row" onclick={() => sheetOpen.injuries = true}>
 				<span class="row-label">Injuries</span>
 				<span class="row-value">{injuriesDisplay}</span>
-				<span class="chevron" class:open={expandedSection === 'injuries'}></span>
 			</button>
-			{#if expandedSection === 'injuries'}
-				<div class="row-detail">
-					<div class="chip-group">
-						<button
-							class="chip"
-							class:active={data.injuries.length === 0}
-							onclick={() => { data.injuries = []; markChanged(); }}
-						>None</button>
-						{#each injuryOptions as opt}
-							<button
-								class="chip"
-								class:active={data.injuries.includes(opt.value)}
-								onclick={() => toggleInjury(opt.value)}
-							>{opt.label}</button>
-						{/each}
-					</div>
-				</div>
-			{/if}
+		</div>
+	</div>
+
+	<!-- Training -->
+	<div class="group">
+		<p class="group-label">Training</p>
+		<div class="card">
+			<button class="row" onclick={() => sheetOpen.experience = true}>
+				<span class="row-label">Experience</span>
+				<span class="row-value">{experienceDisplay}</span>
+			</button>
+
+			<div class="divider"></div>
+
+			<button class="row" onclick={() => sheetOpen.days = true}>
+				<span class="row-label">Days per week</span>
+				<span class="row-value">{daysDisplay}</span>
+			</button>
+
+			<div class="divider"></div>
+
+			<button class="row" onclick={() => sheetOpen.goals = true}>
+				<span class="row-label">Goals</span>
+				<span class="row-value truncate">{goalsDisplay}</span>
+			</button>
+		</div>
+	</div>
+
+	<!-- Preferences -->
+	<div class="group">
+		<p class="group-label">Preferences</p>
+		<div class="card">
+			<button class="row" onclick={() => sheetOpen.reviewDay = true}>
+				<span class="row-label">Review day</span>
+				<span class="row-value">{reviewDayDisplay}</span>
+			</button>
+
+			<div class="divider"></div>
+
+			<div class="row static">
+				<span class="row-label">Units</span>
+				<SegmentedToggle
+					options={unitOptions}
+					bind:value={prefs.units}
+					onchange={markChanged}
+				/>
+			</div>
+
+			<div class="divider"></div>
+
+			<button class="row" onclick={() => sheetOpen.restTimer = true}>
+				<span class="row-label">Rest timer</span>
+				<span class="row-value">{restTimerDisplay}</span>
+			</button>
 		</div>
 	</div>
 
@@ -260,7 +253,80 @@
 	{#if saved}
 		<p class="saved-msg">Saved</p>
 	{/if}
+
+	<!-- Log out placeholder -->
+	<button class="logout-btn" disabled>Log out</button>
 </div>
+
+<!-- Bottom Sheets -->
+<BottomSheet
+	bind:open={sheetOpen.age}
+	title="Age Range"
+	options={ageOptions}
+	bind:value={data.ageRange}
+	onchange={markChanged}
+/>
+
+<BottomSheet
+	bind:open={sheetOpen.experience}
+	title="Experience Level"
+	options={experienceOptions}
+	bind:value={data.experienceLevel}
+	onchange={markChanged}
+/>
+
+<BottomSheet
+	bind:open={sheetOpen.days}
+	title="Days per Week"
+	options={daySheetOptions}
+	bind:value={data.trainingDays}
+	onchange={markChanged}
+/>
+
+<BottomSheet
+	bind:open={sheetOpen.goals}
+	title="Goals"
+	options={goalSheetOptions}
+	bind:values={data.goals}
+	multiSelect={true}
+	onchange={markChanged}
+/>
+
+<BottomSheet
+	bind:open={sheetOpen.injuries}
+	title="Injuries or Limitations"
+	options={injurySheetOptions}
+	values={injurySheetValues}
+	multiSelect={true}
+	onchange={() => {
+		// After toggle, check if __none__ was selected
+		if (injurySheetValues.includes('__none__') && injurySheetValues.length > 1) {
+			// User selected a real injury, remove __none__
+			data.injuries = injurySheetValues.filter(v => v !== '__none__') as InjuryArea[];
+		} else if (injurySheetValues.includes('__none__')) {
+			data.injuries = [];
+		} else {
+			data.injuries = injurySheetValues as InjuryArea[];
+		}
+		markChanged();
+	}}
+/>
+
+<BottomSheet
+	bind:open={sheetOpen.reviewDay}
+	title="Review Day"
+	options={reviewDaySheetOptions}
+	bind:value={prefs.reviewDay}
+	onchange={markChanged}
+/>
+
+<BottomSheet
+	bind:open={sheetOpen.restTimer}
+	title="Rest Timer"
+	options={restTimerSheetOptions}
+	bind:value={prefs.restTimerDefault}
+	onchange={markChanged}
+/>
 
 <style>
 	.settings {
@@ -318,6 +384,14 @@
 		background: #fafafa;
 	}
 
+	.row.static {
+		cursor: default;
+	}
+
+	.row.static:hover {
+		background: none;
+	}
+
 	.row-label {
 		font-size: 0.9375rem;
 		font-weight: 500;
@@ -327,9 +401,13 @@
 
 	.row-value {
 		font-size: 0.9375rem;
-		color: #888;
+		color: #666;
 		margin-left: auto;
 		text-align: right;
+	}
+
+	.row-value.muted {
+		color: #bbb;
 	}
 
 	.truncate {
@@ -339,87 +417,10 @@
 		max-width: 55%;
 	}
 
-	.chevron {
-		flex-shrink: 0;
-		width: 0.5rem;
-		height: 0.5rem;
-		border-right: 2px solid #ccc;
-		border-bottom: 2px solid #ccc;
-		transform: rotate(45deg);
-		transition: transform 0.2s;
-	}
-
-	.chevron.open {
-		transform: rotate(-135deg);
-	}
-
 	.divider {
 		height: 1px;
 		background: #f0f0f0;
 		margin: 0 1rem;
-	}
-
-	.row-detail {
-		padding: 0.25rem 1rem 0.875rem;
-	}
-
-	.pill-group {
-		display: flex;
-		gap: 0.375rem;
-	}
-
-	.pill {
-		flex: 1;
-		padding: 0.5rem 0.25rem;
-		border: 1.5px solid #e5e5e5;
-		border-radius: 8px;
-		background: #fff;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: #666;
-		cursor: pointer;
-		font-family: inherit;
-		text-align: center;
-		transition: all 0.15s;
-	}
-
-	.pill:hover {
-		border-color: #ccc;
-	}
-
-	.pill.active {
-		border-color: #000;
-		background: #000;
-		color: #fff;
-	}
-
-	.chip-group {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.375rem;
-	}
-
-	.chip {
-		padding: 0.4rem 0.75rem;
-		border: 1.5px solid #e5e5e5;
-		border-radius: 20px;
-		background: #fff;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: #666;
-		cursor: pointer;
-		font-family: inherit;
-		transition: all 0.15s;
-	}
-
-	.chip:hover {
-		border-color: #ccc;
-	}
-
-	.chip.active {
-		border-color: #000;
-		background: #000;
-		color: #fff;
 	}
 
 	.save-btn {
@@ -445,5 +446,19 @@
 		font-size: 0.875rem;
 		font-weight: 600;
 		margin: -0.5rem 0 0;
+	}
+
+	.logout-btn {
+		padding: 0.875rem;
+		background: none;
+		color: #e55;
+		border: 1px solid #e8e8e8;
+		border-radius: 12px;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		font-family: inherit;
+		width: 100%;
+		cursor: not-allowed;
+		opacity: 0.4;
 	}
 </style>
