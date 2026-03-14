@@ -1,0 +1,183 @@
+import type { PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
+
+export interface WeekHistory {
+	weekNumber: number;
+	weekStart: string; // ISO date (Monday)
+	days: PlannedDay[];
+	exercises: PlannedExercise[];
+	plannedSets: PlannedSet[];
+	setLogs: SetLog[];
+}
+
+// Same PPL exercise template used across all weeks
+const EXERCISE_TEMPLATE = [
+	// Mon - Push
+	{ dayIdx: 0, exercises: [
+		{ name: 'Bench Press', exDbId: 'exr_41n2hxnFMotsXTj3' },
+		{ name: 'Shoulder Press', exDbId: 'exr_41n2hs6camM22yBG' },
+		{ name: 'Tricep Pushdown', exDbId: 'exr_41n2hMRXm49mM62z' }
+	]},
+	// Tue - Pull
+	{ dayIdx: 1, exercises: [
+		{ name: 'Barbell Row', exDbId: 'exr_pull_1' },
+		{ name: 'Pull-ups', exDbId: 'exr_pull_2' },
+		{ name: 'Bicep Curls', exDbId: 'exr_pull_3' }
+	]},
+	// Wed - Legs
+	{ dayIdx: 2, exercises: [
+		{ name: 'Barbell Squat', exDbId: 'exr_legs_1' },
+		{ name: 'Romanian Deadlift', exDbId: 'exr_legs_2' },
+		{ name: 'Leg Press', exDbId: 'exr_legs_3' },
+		{ name: 'Calf Raises', exDbId: 'exr_legs_4' }
+	]},
+	// Thu - Rest (no exercises)
+	// Fri - Push
+	{ dayIdx: 4, exercises: [
+		{ name: 'Incline Dumbbell Press', exDbId: 'exr_push2_1' },
+		{ name: 'Lateral Raises', exDbId: 'exr_push2_2' },
+		{ name: 'Dips', exDbId: 'exr_push2_3' }
+	]},
+	// Sat - Pull
+	{ dayIdx: 5, exercises: [
+		{ name: 'Lat Pulldown', exDbId: 'exr_pull2_1' },
+		{ name: 'Seated Cable Row', exDbId: 'exr_pull2_2' },
+		{ name: 'Hammer Curls', exDbId: 'exr_pull2_3' }
+	]}
+];
+
+// Base weights per exercise (week 1 baseline). Null = bodyweight.
+const BASE_WEIGHTS: Record<string, (number | null)[]> = {
+	'Bench Press':           [125, 140, 160],
+	'Shoulder Press':        [50, 60, 70],
+	'Tricep Pushdown':       [35, 35, 40],
+	'Barbell Row':           [105, 125, 145],
+	'Pull-ups':              [null, null, null],
+	'Bicep Curls':           [20, 20, 25],
+	'Barbell Squat':         [125, 170, 190, 210],
+	'Romanian Deadlift':     [125, 145, 145],
+	'Leg Press':             [210, 250, 290],
+	'Calf Raises':           [80, 80, 100],
+	'Incline Dumbbell Press':[40, 45, 50],
+	'Lateral Raises':        [12, 12, 15],
+	'Dips':                  [null, null, null],
+	'Lat Pulldown':          [90, 110, 130],
+	'Seated Cable Row':      [75, 90, 105],
+	'Hammer Curls':          [20, 25, 30]
+};
+
+const BASE_REPS: Record<string, number[]> = {
+	'Bench Press':           [10, 8, 6],
+	'Shoulder Press':        [10, 8, 6],
+	'Tricep Pushdown':       [12, 10, 8],
+	'Barbell Row':           [10, 8, 6],
+	'Pull-ups':              [10, 8, 6],
+	'Bicep Curls':           [12, 10, 8],
+	'Barbell Squat':         [8, 8, 6, 4],
+	'Romanian Deadlift':     [10, 8, 8],
+	'Leg Press':             [12, 10, 8],
+	'Calf Raises':           [15, 15, 12],
+	'Incline Dumbbell Press':[10, 8, 6],
+	'Lateral Raises':        [15, 12, 12],
+	'Dips':                  [12, 10, 8],
+	'Lat Pulldown':          [10, 8, 6],
+	'Seated Cable Row':      [10, 10, 8],
+	'Hammer Curls':          [12, 10, 8]
+};
+
+// Weight progression multiplier per week (simulates progressive overload)
+const WEEK_MULTIPLIERS = [1.0, 1.05, 1.1, 1.1];
+
+// Which days are completed per week (by day_of_week index)
+// Week 1: 4/5 (missed Saturday pull)
+// Week 2: 5/5
+// Week 3: 4/5 (missed Friday push)
+// Week 4: 3/5 (current week in progress - Mon/Tue/Wed done)
+const COMPLETED_DAYS: number[][] = [
+	[0, 1, 2, 4],       // Week 1
+	[0, 1, 2, 4, 5],    // Week 2
+	[0, 1, 2, 5],       // Week 3
+	[0, 1, 2]            // Week 4 (in progress)
+];
+
+function roundWeight(w: number): number {
+	return Math.round(w / 5) * 5; // Round to nearest 5
+}
+
+function generateWeek(weekNum: number, weekStart: string): WeekHistory {
+	const prefix = `w${weekNum}`;
+	const planId = `plan-${prefix}`;
+	const multiplier = WEEK_MULTIPLIERS[weekNum - 1] ?? 1.0;
+	const completedDays = COMPLETED_DAYS[weekNum - 1] ?? [];
+
+	const days: PlannedDay[] = [
+		{ id: `${prefix}-day-0`, plan_id: planId, day_of_week: 0, label: 'Push', is_rest_day: false, is_review_day: false },
+		{ id: `${prefix}-day-1`, plan_id: planId, day_of_week: 1, label: 'Pull', is_rest_day: false, is_review_day: false },
+		{ id: `${prefix}-day-2`, plan_id: planId, day_of_week: 2, label: 'Legs', is_rest_day: false, is_review_day: false },
+		{ id: `${prefix}-day-3`, plan_id: planId, day_of_week: 3, label: 'Rest', is_rest_day: true, is_review_day: false },
+		{ id: `${prefix}-day-4`, plan_id: planId, day_of_week: 4, label: 'Push', is_rest_day: false, is_review_day: false },
+		{ id: `${prefix}-day-5`, plan_id: planId, day_of_week: 5, label: 'Pull', is_rest_day: false, is_review_day: false },
+		{ id: `${prefix}-day-6`, plan_id: planId, day_of_week: 6, label: 'Review', is_rest_day: false, is_review_day: true }
+	];
+
+	const exercises: PlannedExercise[] = [];
+	const plannedSets: PlannedSet[] = [];
+	const setLogs: SetLog[] = [];
+
+	for (const group of EXERCISE_TEMPLATE) {
+		const dayId = `${prefix}-day-${group.dayIdx}`;
+		const isDayCompleted = completedDays.includes(group.dayIdx);
+
+		for (let eIdx = 0; eIdx < group.exercises.length; eIdx++) {
+			const ex = group.exercises[eIdx];
+			const exId = `${prefix}-ex-${group.dayIdx}-${eIdx}`;
+
+			exercises.push({
+				id: exId,
+				planned_day_id: dayId,
+				exercisedb_id: ex.exDbId,
+				exercise_name: ex.name,
+				order: eIdx
+			});
+
+			const baseWeights = BASE_WEIGHTS[ex.name] ?? [];
+			const baseReps = BASE_REPS[ex.name] ?? [];
+			const numSets = baseReps.length;
+
+			for (let s = 0; s < numSets; s++) {
+				const psId = `${prefix}-ps-${group.dayIdx}-${eIdx}-${s + 1}`;
+				const baseW = baseWeights[s];
+				const targetWeight = baseW !== null ? roundWeight(baseW * multiplier) : null;
+				const targetReps = baseReps[s];
+
+				plannedSets.push({
+					id: psId,
+					planned_exercise_id: exId,
+					set_number: s + 1,
+					target_reps: targetReps,
+					target_weight: targetWeight
+				});
+
+				const completed = isDayCompleted;
+				setLogs.push({
+					id: `${prefix}-sl-${group.dayIdx}-${eIdx}-${s + 1}`,
+					workout_log_id: `${prefix}-log-${dayId}`,
+					planned_exercise_id: exId,
+					planned_set_id: psId,
+					set_number: s + 1,
+					actual_reps: completed ? targetReps : null,
+					actual_weight: completed ? targetWeight : null,
+					completed
+				});
+			}
+		}
+	}
+
+	return { weekNumber: weekNum, weekStart, days, exercises, plannedSets, setLogs };
+}
+
+export const mockWeekHistories: WeekHistory[] = [
+	generateWeek(1, '2026-02-16'),
+	generateWeek(2, '2026-02-23'),
+	generateWeek(3, '2026-03-02'),
+	generateWeek(4, '2026-03-09')
+];

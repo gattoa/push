@@ -9,7 +9,7 @@ const DEFAULTS: AppPreferences = {
 };
 
 export function getPreferences(): AppPreferences {
-	if (typeof localStorage === 'undefined') return DEFAULTS;
+	if (typeof window === 'undefined') return DEFAULTS;
 
 	const raw = localStorage.getItem(STORAGE_KEY);
 	if (!raw) return DEFAULTS;

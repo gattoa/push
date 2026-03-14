@@ -6,7 +6,9 @@
 <nav>
 	<a href="/settings" aria-current={currentPath === '/settings' ? 'page' : undefined}>Settings</a>
 	<a href="/" aria-current={currentPath === '/' ? 'page' : undefined}>Today</a>
-	<a href="/profile" aria-current={currentPath === '/profile' ? 'page' : undefined}>Profile</a>
+	<a href="/profile" class="avatar-link" aria-current={currentPath === '/profile' ? 'page' : undefined}>
+		<span class="nav-avatar">P</span>
+	</a>
 </nav>
 
 <style>
@@ -37,5 +39,29 @@
 	a[aria-current='page'] {
 		color: #000;
 		font-weight: 700;
+	}
+
+	.avatar-link {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.nav-avatar {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background: #e8e8e8;
+		color: #999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.75rem;
+		font-weight: 700;
+	}
+
+	a[aria-current='page'] .nav-avatar {
+		background: #000;
+		color: #fff;
 	}
 </style>

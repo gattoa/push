@@ -1,17 +1,38 @@
 <script lang="ts">
-	import type { ExerciseDBExercise } from '$lib/types';
+	import { onMount } from 'svelte';
+	import type { ExerciseDBExercise, AppPreferences } from '$lib/types';
 	import { mockPlannedExercises, getSetsForExercise, getLogsForExercise } from '$lib/mock/workouts';
 	import SetRow from '$lib/components/SetRow.svelte';
 	import QuickComplete from '$lib/components/QuickComplete.svelte';
+	import ExerciseHistory from '$lib/components/ExerciseHistory.svelte';
+	import { mockWeekHistories } from '$lib/mock/profile-history';
+	import { computeExerciseHistory } from '$lib/mock/profile';
 
 	let { data } = $props();
 	let exercise: ExerciseDBExercise | null = $derived(data.exercise);
+	let units: 'lbs' | 'kg' = $state('lbs');
 
 	let exerciseId = $derived(data.exerciseId ?? '');
 	let plannedExercise = $derived(mockPlannedExercises.find(e => e.exercisedb_id === exerciseId) ?? null);
 	let plannedSets = $derived(plannedExercise ? getSetsForExercise(plannedExercise.id) : []);
 	let setLogs = $derived(plannedExercise ? getLogsForExercise(plannedExercise.id) : []);
+	let exerciseHistory = $derived(exerciseId ? computeExerciseHistory(exerciseId, mockWeekHistories) : null);
+
+	onMount(() => {
+		const rawPrefs = localStorage.getItem('push_preferences');
+		if (rawPrefs) {
+			try {
+				const prefs: Partial<AppPreferences> = JSON.parse(rawPrefs);
+				if (prefs.units) units = prefs.units;
+			} catch { /* ignore */ }
+		}
+	});
 </script>
+
+<div class="exercise-page">
+	<button class="back-btn" onclick={() => history.back()}>
+		<span class="back-arrow">‹</span> Back
+	</button>
 
 {#if plannedExercise && plannedSets.length > 0}
 	<section>
@@ -25,6 +46,15 @@
 		<QuickComplete {plannedSets} {setLogs} />
 		<button disabled>[Swap Exercise]</button>
 	</section>
+	<hr />
+{/if}
+
+{#if !exercise && exerciseHistory}
+	<h1>{exerciseHistory.exerciseName}</h1>
+{/if}
+
+{#if exerciseHistory && exerciseHistory.sessions.length > 0}
+	<ExerciseHistory history={exerciseHistory} {units} />
 	<hr />
 {/if}
 
@@ -91,6 +121,39 @@
 			</ul>
 		{/if}
 	</article>
-{:else}
+{:else if !exerciseHistory}
 	<p style="color: red;">Exercise not found.</p>
 {/if}
+</div>
+
+<style>
+	.exercise-page {
+		max-width: 480px;
+		margin: 0 auto;
+		padding: 0 1rem 6rem;
+	}
+
+	.back-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+		font-family: inherit;
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: #666;
+		padding: 0.5rem 0;
+		margin-bottom: 0.5rem;
+	}
+
+	.back-btn:hover {
+		color: #000;
+	}
+
+	.back-arrow {
+		font-size: 1.25rem;
+		line-height: 1;
+	}
+</style>
