@@ -1,6 +1,14 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { mockPlannedDays, mockPlannedSets, mockPlannedExercises, mockSetLogs, getTodayIndex } from '$lib/mock/workouts';
 	import DailyWorkout from '$lib/components/DailyWorkout.svelte';
+
+	onMount(() => {
+		if (!localStorage.getItem('push_onboarding_complete')) {
+			goto('/onboarding');
+		}
+	});
 
 	const todayIndex = getTodayIndex();
 	const todayPlan = mockPlannedDays[todayIndex];

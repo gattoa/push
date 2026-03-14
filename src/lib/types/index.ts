@@ -76,6 +76,21 @@ export interface SetLog {
 	completed: boolean;
 }
 
+// === Onboarding ===
+
+export type AgeRange = 'under_35' | '35_50' | '50_plus';
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+export type TrainingGoal = 'build_muscle' | 'lose_fat' | 'get_stronger' | 'general_fitness';
+export type InjuryArea = 'shoulder' | 'back' | 'knee';
+
+export interface OnboardingData {
+	ageRange: AgeRange | null;
+	experienceLevel: ExperienceLevel | null;
+	trainingDays: number | null; // 3, 4, 5, or 6
+	goals: TrainingGoal[];
+	injuries: InjuryArea[]; // empty = no injuries
+}
+
 // === ExerciseDB API types ===
 
 export interface ExerciseDBSearchResult {
