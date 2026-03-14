@@ -1,9 +1,32 @@
 <script lang="ts">
 	import type { ExerciseDBExercise } from '$lib/types';
+	import { mockPlannedExercises, getSetsForExercise, getLogsForExercise } from '$lib/mock/workouts';
+	import SetRow from '$lib/components/SetRow.svelte';
+	import QuickComplete from '$lib/components/QuickComplete.svelte';
 
 	let { data } = $props();
 	let exercise: ExerciseDBExercise | null = $derived(data.exercise);
+
+	let exerciseId = $derived(data.exerciseId ?? '');
+	let plannedExercise = $derived(mockPlannedExercises.find(e => e.exercisedb_id === exerciseId) ?? null);
+	let plannedSets = $derived(plannedExercise ? getSetsForExercise(plannedExercise.id) : []);
+	let setLogs = $derived(plannedExercise ? getLogsForExercise(plannedExercise.id) : []);
 </script>
+
+{#if plannedExercise && plannedSets.length > 0}
+	<section>
+		<h2>Log Sets</h2>
+		{#each plannedSets as ps (ps.id)}
+			{@const log = setLogs.find(s => s.planned_set_id === ps.id)}
+			{#if log}
+				<SetRow plannedSet={ps} setLog={log} />
+			{/if}
+		{/each}
+		<QuickComplete {plannedSets} {setLogs} />
+		<button disabled>[Swap Exercise]</button>
+	</section>
+	<hr />
+{/if}
 
 {#if exercise}
 	<article>
