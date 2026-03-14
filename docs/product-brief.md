@@ -65,7 +65,7 @@ This is a personal project — not a commercial product. The goal is to build a 
 - **Plan:** This week's AI-generated schedule. 7-day view with day labels, exercise counts, completion status. Users can shuffle days if schedule changes. Planning beyond the current week is not needed — the AI generates fresh each week.
 - **Exercise detail:** Navigable from exercise tiles and calendar day detail. Where logging happens. Shows form video, exercise history, and multiple logging methods.
 - **Profile:** The user's command center. Historical calendar (date-indexed archive of workouts, photos, PRs), progress stats, personal records. Settings accessible via nameplate tap. Serves both the user (their journey) and the AI (its programming inputs).
-- **Navigation:** Three-icon top bar — calendar icon (plan, left), today's date (workout, center), avatar (profile, right). Icon-driven, no text labels. Left-to-right temporal flow: future → present → past. Workout page is home.
+- **Navigation:** Three-icon top bar — gear icon (settings, left), today's date (workout, center), avatar (profile, right). Icon-driven, no text labels. Workout page is home. Week plan view accessible from the Today page.
 
 ## Assumptions
 

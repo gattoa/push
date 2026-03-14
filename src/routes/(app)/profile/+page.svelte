@@ -94,13 +94,13 @@
 </script>
 
 <div class="profile">
-	<!-- Header (nameplate — will become settings ingress) -->
-	<a href="/settings" class="profile-header">
+	<!-- Header -->
+	<div class="profile-header">
 		<h1>Push Athlete</h1>
 		<p class="subtitle">
 			{#if experienceLabel}{experienceLabel} · {/if}Member since Feb 2026
 		</p>
-	</a>
+	</div>
 
 	<div class="toggle-wrap">
 		<SegmentedToggle options={viewOptions} bind:value={activeView} />
@@ -289,9 +289,6 @@
 	.profile-header {
 		text-align: center;
 		padding: 1rem 0 0.25rem;
-		text-decoration: none;
-		color: inherit;
-		display: block;
 	}
 
 	h1 {

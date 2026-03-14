@@ -21,8 +21,10 @@
 	);
 </script>
 
-<h1>{todayPlan.label}</h1>
-<h2>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+<div class="today-header">
+	<a href="/plan" class="today-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</a>
+	<h1>{todayPlan.label}</h1>
+</div>
 
 <DailyWorkout
 	plannedDay={todayPlan}
@@ -30,3 +32,27 @@
 	plannedSets={todayPlannedSets}
 	setLogs={todaySetLogs}
 />
+
+<style>
+	.today-header {
+		text-align: center;
+		padding: 0.5rem 0 0.75rem;
+	}
+
+	h1 {
+		font-size: 1.5rem;
+		font-weight: 800;
+		margin: 0;
+	}
+
+	.today-date {
+		font-size: 0.875rem;
+		color: #999;
+		text-decoration: none;
+		margin: 0;
+	}
+
+	.today-date:hover {
+		color: #666;
+	}
+</style>

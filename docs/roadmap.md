@@ -42,11 +42,10 @@ Full TypeScript types defined in `src/lib/types/index.ts`:
 ### Pages
 | Route | Status |
 |-------|--------|
-| `/` (Home/Today) | Working — today's workout with DailyWorkout |
-| `/plan` | Not started — this week's 7-day schedule view |
+| `/` (Home/Today) | Working — today's workout with DailyWorkout, week plan view accessible from here |
 | `/exercise/[id]` | Working — ExerciseDB content + set logging + exercise history |
-| `/profile` | In progress — historical calendar, stats, PRs, photos, settings (merged) |
-| `/settings` | Deprecated — merging into Profile via nameplate tap |
+| `/profile` | In progress — historical calendar, stats, PRs, photos |
+| `/settings` | Working — preferences, training config, about you |
 
 ---
 
@@ -61,10 +60,10 @@ Build every remaining screen from the product brief using mock data:
 - [ ] **Onboarding flow** — 4 screens: experience level, training days/week, goals, injuries. Mock output as a generated plan.
 - [ ] **Exercise swaps UI** — tap/swipe on exercise tile → 3 alternatives from ExerciseDB by target muscle
 - [ ] **Review Day page** — weekly summary, achievements, "Start Next Week" transition
-- [ ] **Navigation restructure** — icon-driven nav (calendar icon | date | avatar), routing for `/plan`
-- [ ] **Plan page** — this week's 7-day schedule view with day shuffle capability
-- [ ] **Profile page** — historical calendar (date-indexed archive), lifetime stats, PRs, progress photos, settings merge via nameplate
-- [ ] **Settings merged into Profile** — accessible via nameplate tap on profile header
+- [x] **Navigation restructure** — icon-driven nav (gear | date | avatar)
+- [ ] **Week plan view** — this week's 7-day schedule view with day shuffle capability, accessible from Today page
+- [x] **Profile page** — historical calendar (date-indexed archive), lifetime stats, PRs, progress photos
+- [x] **Settings page** — review day config, training days, goals, injuries
 - [ ] **PR indicators** — on exercise tiles and detail page
 - [ ] **Rest timer** — countdown between sets (90s hypertrophy / 180s strength)
 - [ ] **Historical performance** — "Last: 135lb x 10" on exercise detail
