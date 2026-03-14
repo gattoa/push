@@ -61,11 +61,11 @@ This is a personal project — not a commercial product. The goal is to build a 
 
 ## App Architecture
 
-- **Home screen:** Workout page. Settings icon (upper left), profile/avatar (upper right). Exercise tiles for today's session.
-- **Exercise detail:** Navigable from exercise tiles. Where logging happens. Shows form video, exercise history, and multiple logging methods.
-- **Profile:** Progress data, workout history, personal records, photos. Serves both the user (their journey) and the AI (its programming inputs).
-- **Settings:** Review day configuration, training schedule, preferences.
-- **Navigation:** No bottom tab bar. No tabbed nav. Workout page is home — everything else is reachable from it.
+- **Home screen:** Today's workout. Exercise tiles for today's session. Center of the icon nav.
+- **Plan:** This week's AI-generated schedule. 7-day view with day labels, exercise counts, completion status. Users can shuffle days if schedule changes. Planning beyond the current week is not needed — the AI generates fresh each week.
+- **Exercise detail:** Navigable from exercise tiles and calendar day detail. Where logging happens. Shows form video, exercise history, and multiple logging methods.
+- **Profile:** The user's command center. Historical calendar (date-indexed archive of workouts, photos, PRs), progress stats, personal records. Settings accessible via nameplate tap. Serves both the user (their journey) and the AI (its programming inputs).
+- **Navigation:** Three-icon top bar — calendar icon (plan, left), today's date (workout, center), avatar (profile, right). Icon-driven, no text labels. Left-to-right temporal flow: future → present → past. Workout page is home.
 
 ## Assumptions
 

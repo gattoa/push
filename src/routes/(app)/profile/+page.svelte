@@ -96,7 +96,9 @@
 		</p>
 	</div>
 
-	<SegmentedToggle options={viewOptions} bind:value={activeView} />
+	<div class="toggle-wrap">
+		<SegmentedToggle options={viewOptions} bind:value={activeView} />
+	</div>
 
 	{#if activeView === 'recent'}
 		<!-- Stats Bar -->
@@ -112,8 +114,8 @@
 			</div>
 			<div class="stat-divider"></div>
 			<div class="stat">
-				<span class="stat-value">{formatVolume(convertWeight(currentWeekStats.volume, units))}</span>
-				<span class="stat-label">{units}</span>
+				<span class="stat-value">{formatVolume(convertWeight(currentWeekStats.volume, units))} <span class="stat-unit">{units}</span></span>
+				<span class="stat-label">Volume</span>
 			</div>
 		</div>
 
@@ -256,6 +258,11 @@
 		margin: 0.25rem 0 0;
 	}
 
+	.toggle-wrap {
+		display: flex;
+		justify-content: center;
+	}
+
 	/* Groups (reused from settings) */
 	.group {
 		display: flex;
@@ -338,6 +345,12 @@
 		font-size: 1.5rem;
 		font-weight: 800;
 		color: #000;
+	}
+
+	.stat-unit {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #999;
 	}
 
 	.stat-label {

@@ -285,6 +285,39 @@ export function convertWeight(lbs: number, units: 'lbs' | 'kg'): number {
 	return units === 'kg' ? Math.round(lbs * 0.453592) : lbs;
 }
 
+// === Motivation View Functions ===
+
+export function computeVolumeDelta(weeks: WeekHistory[]): number | null {
+	if (weeks.length < 2) return null;
+	const current = computeWeekStats(weeks[weeks.length - 1]).volume;
+	const previous = computeWeekStats(weeks[weeks.length - 2]).volume;
+	if (previous === 0) return null;
+	return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+export function computeRecentPRs(weeks: WeekHistory[]): PersonalRecord[] {
+	if (weeks.length === 0) return [];
+
+	const lastIdx = weeks.length - 1;
+	const currentPRs = computeWeekPRs(lastIdx, weeks);
+
+	if (weeks.length < 2) return currentPRs;
+
+	const prevIdx = weeks.length - 2;
+	const previousPRs = computeWeekPRs(prevIdx, weeks);
+
+	// Merge, keeping the better PR per exercise
+	const byExercise = new Map<string, PersonalRecord>();
+	for (const pr of [...previousPRs, ...currentPRs]) {
+		const existing = byExercise.get(pr.exerciseName);
+		if (!existing || pr.estimated1RM > existing.estimated1RM) {
+			byExercise.set(pr.exerciseName, pr);
+		}
+	}
+
+	return Array.from(byExercise.values()).sort((a, b) => b.estimated1RM - a.estimated1RM);
+}
+
 // === Calendar View Types ===
 
 export interface SetResult {
