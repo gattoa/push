@@ -21,22 +21,33 @@
 	);
 </script>
 
-<div class="today-header">
-	<a href="/plan" class="today-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</a>
-	<h1>{todayPlan.label}</h1>
+<div class="today-page">
+	<div class="today-header">
+		<a href="/plan" class="today-date">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</a>
+		<h1>{todayPlan.label}</h1>
+	</div>
+
+	<DailyWorkout
+		plannedDay={todayPlan}
+		exercises={todayExercises}
+		plannedSets={todayPlannedSets}
+		setLogs={todaySetLogs}
+	/>
 </div>
 
-<DailyWorkout
-	plannedDay={todayPlan}
-	exercises={todayExercises}
-	plannedSets={todayPlannedSets}
-	setLogs={todaySetLogs}
-/>
-
 <style>
+	.today-page {
+		max-width: 480px;
+		margin: 0 auto;
+		padding: 0 1rem 6rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
 	.today-header {
 		text-align: center;
-		padding: 0.5rem 0 0.75rem;
+		padding: 0.5rem 0 0.25rem;
 	}
 
 	h1 {
