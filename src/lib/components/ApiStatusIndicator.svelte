@@ -5,18 +5,18 @@
 
 	let supabaseStatus: ApiStatus = 'not-checked';
 	let anthropicStatus: ApiStatus = 'not-checked';
-	let youtubeStatus: ApiStatus = 'not-checked';
+	let exercisedbStatus: ApiStatus = 'not-checked';
 
 	let supabaseError = '';
 	let anthropicError = '';
-	let youtubeError = '';
+	let exercisedbError = '';
 
 	onMount(() => {
 		checkAllApis();
 	});
 
 	async function checkAllApis() {
-		await Promise.all([checkSupabase(), checkAnthropic(), checkYouTube()]);
+		await Promise.all([checkSupabase(), checkAnthropic(), checkExerciseDB()]);
 	}
 
 	async function checkSupabase() {
@@ -59,16 +59,21 @@
 		}
 	}
 
-	async function checkYouTube() {
-		youtubeStatus = 'checking';
+	async function checkExerciseDB() {
+		exercisedbStatus = 'checking';
 		try {
-			const { searchExerciseVideos } = await import('$lib/api/youtube');
-			await searchExerciseVideos('push up');
-			youtubeStatus = 'connected';
-			youtubeError = '';
+			const response = await fetch('/api/exercisedb-search?q=push+up');
+			const data = await response.json();
+			if (data.success) {
+				exercisedbStatus = 'connected';
+				exercisedbError = '';
+			} else {
+				exercisedbStatus = 'error';
+				exercisedbError = data.error || 'Unknown error';
+			}
 		} catch (e: any) {
-			youtubeStatus = 'error';
-			youtubeError = e.message;
+			exercisedbStatus = 'error';
+			exercisedbError = e.message;
 		}
 	}
 
@@ -121,12 +126,12 @@
 			{/if}
 		</div>
 		<div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-			<span style="font-weight: bold; font-size: 16px; width: 20px; text-align: center; color: {getStatusColor(youtubeStatus)}">
-				{getStatusSymbol(youtubeStatus)}
+			<span style="font-weight: bold; font-size: 16px; width: 20px; text-align: center; color: {getStatusColor(exercisedbStatus)}">
+				{getStatusSymbol(exercisedbStatus)}
 			</span>
-			<span style="flex: 1;">YouTube</span>
-			{#if youtubeStatus === 'error' && youtubeError}
-				<span style="color: #d00; cursor: help;" title={youtubeError}>⚠</span>
+			<span style="flex: 1;">ExerciseDB</span>
+			{#if exercisedbStatus === 'error' && exercisedbError}
+				<span style="color: #d00; cursor: help;" title={exercisedbError}>⚠</span>
 			{/if}
 		</div>
 	</div>

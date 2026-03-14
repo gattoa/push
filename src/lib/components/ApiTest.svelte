@@ -1,7 +1,7 @@
 <script lang="ts">
 	let supabaseStatus = 'Not tested';
 	let anthropicStatus = 'Not tested';
-	let youtubeStatus = 'Not tested';
+	let exercisedbStatus = 'Not tested';
 
 	async function testSupabase() {
 		try {
@@ -27,13 +27,13 @@
 		}
 	}
 
-	async function testYouTube() {
+	async function testExerciseDB() {
 		try {
-			const { searchExerciseVideos } = await import('$lib/api/youtube');
-			await searchExerciseVideos('push up');
-			youtubeStatus = 'Connected ✓';
+			const response = await fetch('/api/exercisedb-search?q=push+up');
+			const data = await response.json();
+			exercisedbStatus = data.success ? 'Connected ✓' : 'Failed: ' + data.error;
 		} catch (e: any) {
-			youtubeStatus = 'Failed: ' + e.message;
+			exercisedbStatus = 'Failed: ' + e.message;
 		}
 	}
 </script>
@@ -42,5 +42,5 @@
 	<h3>API Tests</h3>
 	<div><button on:click={testSupabase}>Test Supabase</button> {supabaseStatus}</div>
 	<div><button on:click={testAnthropic}>Test Claude</button> {anthropicStatus}</div>
-	<div><button on:click={testYouTube}>Test YouTube</button> {youtubeStatus}</div>
+	<div><button on:click={testExerciseDB}>Test ExerciseDB</button> {exercisedbStatus}</div>
 </div>

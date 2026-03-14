@@ -22,17 +22,27 @@ export interface User {
 	avatar_url?: string;
 }
 
-export interface YouTubeVideo {
-	id: {
-		videoId: string;
-	};
-	snippet: {
-		title: string;
-		description: string;
-		thumbnails: {
-			default: { url: string };
-			medium: { url: string };
-			high: { url: string };
-		};
-	};
+export interface ExerciseDBSearchResult {
+	exerciseId: string;
+	name: string;
+	imageUrl: string;
+}
+
+export interface ExerciseDBExercise {
+	exerciseId: string;
+	name: string;
+	imageUrl: string;
+	imageUrls: Record<string, string>;
+	equipments: string[];
+	bodyParts: string[];
+	exerciseType: string;
+	targetMuscles: string[];
+	secondaryMuscles: string[];
+	videoUrl: string;
+	keywords: string[];
+	overview: string;
+	instructions: string[];
+	exerciseTips: string[];
+	variations: string[];
+	relatedExerciseIds: string[];
 }
