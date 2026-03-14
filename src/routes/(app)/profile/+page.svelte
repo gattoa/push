@@ -8,12 +8,15 @@
 	import { mockWeekHistories } from '$lib/mock/profile-history';
 	import CalendarGrid from '$lib/components/CalendarGrid.svelte';
 	import DayDetailPanel from '$lib/components/DayDetailPanel.svelte';
+	import WeekProgress from '$lib/components/WeekProgress.svelte';
 	import {
 		computeWeekStats,
 		computeStreak,
 		computePersonalRecords,
 		computeLifetimeStats,
 		computeCalendarWeeks,
+		computeVolumeDelta,
+		computeRecentPRs,
 		formatVolume,
 		convertWeight,
 		type CalendarDay
@@ -26,7 +29,8 @@
 	let viewerOpen = $state(false);
 	let viewerPhotoId = $state('');
 	let viewerDate = $state('');
-	let selectedDay = $state<CalendarDay | null>(null);
+	let recentSelectedDay = $state<CalendarDay | null>(null);
+	let alltimeSelectedDay = $state<CalendarDay | null>(null);
 
 	const viewOptions = [
 		{ value: 'recent', label: 'Recent' },
@@ -61,6 +65,8 @@
 	const lifetimeStats = $derived(computeLifetimeStats(mockWeekHistories));
 	const personalRecords = $derived(computePersonalRecords(mockWeekHistories));
 	const calendarWeeks = $derived(computeCalendarWeeks(mockWeekHistories));
+	const volumeDelta = $derived(computeVolumeDelta(mockWeekHistories));
+	const recentPRs = $derived(computeRecentPRs(mockWeekHistories));
 
 	const experienceLabels: Record<string, string> = {
 		beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced'
@@ -88,13 +94,13 @@
 </script>
 
 <div class="profile">
-	<!-- Header -->
-	<div class="profile-header">
+	<!-- Header (nameplate — will become settings ingress) -->
+	<a href="/settings" class="profile-header">
 		<h1>Push Athlete</h1>
 		<p class="subtitle">
 			{#if experienceLabel}{experienceLabel} · {/if}Member since Feb 2026
 		</p>
-	</div>
+	</a>
 
 	<div class="toggle-wrap">
 		<SegmentedToggle options={viewOptions} bind:value={activeView} />
@@ -114,10 +120,49 @@
 			</div>
 			<div class="stat-divider"></div>
 			<div class="stat">
-				<span class="stat-value">{formatVolume(convertWeight(currentWeekStats.volume, units))} <span class="stat-unit">{units}</span></span>
+				<span class="stat-value">
+					{formatVolume(convertWeight(currentWeekStats.volume, units))} <span class="stat-unit">{units}</span>
+					{#if volumeDelta !== null && volumeDelta !== 0}
+						<span class="delta-badge" class:positive={volumeDelta > 0} class:negative={volumeDelta < 0}>
+							{volumeDelta > 0 ? '+' : ''}{volumeDelta}%
+						</span>
+					{/if}
+				</span>
 				<span class="stat-label">Volume</span>
 			</div>
 		</div>
+
+		<!-- This Week + Last Week -->
+		<div class="group">
+			<p class="group-label">Activity</p>
+			<WeekProgress
+				weeks={calendarWeeks}
+				selectedDay={recentSelectedDay}
+				onSelectDay={(day) => { recentSelectedDay = day; }}
+			/>
+			{#if recentSelectedDay}
+				<DayDetailPanel day={recentSelectedDay} {units} />
+			{/if}
+		</div>
+
+		<!-- Recent PRs -->
+		{#if recentPRs.length > 0}
+			<div class="group">
+				<p class="group-label">Recent PRs</p>
+				<div class="card">
+					{#each recentPRs as pr, i (pr.exerciseName)}
+						{#if i > 0}<div class="divider"></div>{/if}
+						<div class="row static pr-row">
+							<div class="pr-info">
+								<span class="row-label">{pr.exerciseName}</span>
+								<span class="pr-detail">{w(pr.weight)} × {pr.reps}</span>
+							</div>
+							<span class="row-value pr-value">{w(pr.estimated1RM)}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
 
 		<!-- Progress Photos -->
 		<div class="group">
@@ -141,20 +186,20 @@
 			{/if}
 		</div>
 
+	{:else}
 		<!-- Activity Calendar -->
 		<div class="group">
 			<p class="group-label">Activity</p>
 			<CalendarGrid
 				weeks={calendarWeeks}
-				{selectedDay}
-				onSelectDay={(day) => { selectedDay = day; }}
+				selectedDay={alltimeSelectedDay}
+				onSelectDay={(day) => { alltimeSelectedDay = day; }}
 			/>
-			{#if selectedDay}
-				<DayDetailPanel day={selectedDay} {units} />
+			{#if alltimeSelectedDay}
+				<DayDetailPanel day={alltimeSelectedDay} {units} />
 			{/if}
 		</div>
 
-	{:else}
 		<!-- Lifetime Stats -->
 		<div class="group">
 			<p class="group-label">Lifetime Stats</p>
@@ -244,6 +289,9 @@
 	.profile-header {
 		text-align: center;
 		padding: 1rem 0 0.25rem;
+		text-decoration: none;
+		color: inherit;
+		display: block;
 	}
 
 	h1 {
@@ -263,7 +311,7 @@
 		justify-content: center;
 	}
 
-	/* Groups (reused from settings) */
+	/* Groups */
 	.group {
 		display: flex;
 		flex-direction: column;
@@ -286,7 +334,7 @@
 		justify-content: space-between;
 	}
 
-	/* Cards (reused from settings) */
+	/* Cards */
 	.card {
 		background: #fff;
 		border: 1px solid #e8e8e8;
@@ -365,6 +413,26 @@
 		width: 1px;
 		height: 2.5rem;
 		background: #f0f0f0;
+	}
+
+	/* Volume Delta Badge */
+	.delta-badge {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		padding: 0.0625rem 0.375rem;
+		border-radius: 8px;
+		margin-left: 0.25rem;
+		vertical-align: middle;
+	}
+
+	.delta-badge.positive {
+		background: #e8f5e9;
+		color: #2e7d32;
+	}
+
+	.delta-badge.negative {
+		background: #fce4ec;
+		color: #c62828;
 	}
 
 	/* Photo Strip (Recent View) */
