@@ -46,6 +46,7 @@ export interface PlannedExercise {
 	planned_day_id: string;
 	exercisedb_id: string;
 	exercise_name: string; // denormalized for display
+	body_parts: string[]; // denormalized from ExerciseDB
 	order: number;
 }
 

@@ -10,78 +10,79 @@ export interface WeekHistory {
 }
 
 // Same PPL exercise template used across all weeks
+// All IDs and body_parts sourced from ExerciseDB via exercises.json
 const EXERCISE_TEMPLATE = [
 	// Mon - Push
 	{ dayIdx: 0, exercises: [
-		{ name: 'Bench Press', exDbId: 'exr_41n2hxnFMotsXTj3' },
-		{ name: 'Shoulder Press', exDbId: 'exr_41n2hs6camM22yBG' },
-		{ name: 'Tricep Pushdown', exDbId: 'exr_41n2hMRXm49mM62z' }
+		{ name: 'Bench Press', exDbId: 'exr_41n2hxnFMotsXTj3', bodyParts: ['CHEST'] },
+		{ name: 'Seated Shoulder Press', exDbId: 'exr_41n2hs6camM22yBG', bodyParts: ['SHOULDERS'] },
+		{ name: 'Arnold Press', exDbId: 'exr_41n2hMRXm49mM62z', bodyParts: ['SHOULDERS'] }
 	]},
 	// Tue - Pull
 	{ dayIdx: 1, exercises: [
-		{ name: 'Barbell Row', exDbId: 'exr_pull_1' },
-		{ name: 'Pull-ups', exDbId: 'exr_pull_2' },
-		{ name: 'Bicep Curls', exDbId: 'exr_pull_3' }
+		{ name: 'One Arm Bent-over Row', exDbId: 'exr_41n2hHdjQpnyNdie', bodyParts: ['BACK'] },
+		{ name: 'Pull up', exDbId: 'exr_41n2hU4y6EaYXFhr', bodyParts: ['BACK'] },
+		{ name: 'Hammer Curl', exDbId: 'exr_41n2hGioS8HumEF7', bodyParts: ['FOREARMS'] }
 	]},
 	// Wed - Legs
 	{ dayIdx: 2, exercises: [
-		{ name: 'Barbell Squat', exDbId: 'exr_legs_1' },
-		{ name: 'Romanian Deadlift', exDbId: 'exr_legs_2' },
-		{ name: 'Leg Press', exDbId: 'exr_legs_3' },
-		{ name: 'Calf Raises', exDbId: 'exr_legs_4' }
+		{ name: 'Squat', exDbId: 'exr_41n2hmGR8WuVfe1U', bodyParts: ['QUADRICEPS', 'THIGHS'] },
+		{ name: 'Romanian Deadlift', exDbId: 'exr_41n2hn8rpbYihzEW', bodyParts: ['HIPS'] },
+		{ name: 'Bulgarian Split Squat', exDbId: 'exr_41n2hpLLs1uU5atr', bodyParts: ['QUADRICEPS', 'THIGHS'] },
+		{ name: 'Seated Calf Raise', exDbId: 'exr_41n2hTs4q3ihihZs', bodyParts: ['CALVES'] }
 	]},
 	// Thu - Rest (no exercises)
 	// Fri - Push
 	{ dayIdx: 4, exercises: [
-		{ name: 'Incline Dumbbell Press', exDbId: 'exr_push2_1' },
-		{ name: 'Lateral Raises', exDbId: 'exr_push2_2' },
-		{ name: 'Dips', exDbId: 'exr_push2_3' }
+		{ name: 'Palms In Incline Bench Press', exDbId: 'exr_41n2hsVHu7B1MTdr', bodyParts: ['UPPER ARMS'] },
+		{ name: 'Lateral Raise', exDbId: 'exr_41n2hjuGpcex14w7', bodyParts: ['SHOULDERS'] },
+		{ name: 'Chest Dip', exDbId: 'exr_41n2hkK8hGAcSnW7', bodyParts: ['CHEST'] }
 	]},
 	// Sat - Pull
 	{ dayIdx: 5, exercises: [
-		{ name: 'Lat Pulldown', exDbId: 'exr_pull2_1' },
-		{ name: 'Seated Cable Row', exDbId: 'exr_pull2_2' },
-		{ name: 'Hammer Curls', exDbId: 'exr_pull2_3' }
+		{ name: 'Sliding Floor Pulldown on Towel', exDbId: 'exr_41n2hadPLLFRGvFk', bodyParts: ['BACK'] },
+		{ name: 'Seated Row with Towel', exDbId: 'exr_41n2hcFJpBvAkXCP', bodyParts: ['BACK'] },
+		{ name: 'Cross Body Hammer Curl', exDbId: 'exr_41n2hgCHNgtVLHna', bodyParts: ['FOREARMS'] }
 	]}
 ];
 
 // Base weights per exercise (week 1 baseline). Null = bodyweight.
 const BASE_WEIGHTS: Record<string, (number | null)[]> = {
-	'Bench Press':           [125, 140, 160],
-	'Shoulder Press':        [50, 60, 70],
-	'Tricep Pushdown':       [35, 35, 40],
-	'Barbell Row':           [105, 125, 145],
-	'Pull-ups':              [null, null, null],
-	'Bicep Curls':           [20, 20, 25],
-	'Barbell Squat':         [125, 170, 190, 210],
-	'Romanian Deadlift':     [125, 145, 145],
-	'Leg Press':             [210, 250, 290],
-	'Calf Raises':           [80, 80, 100],
-	'Incline Dumbbell Press':[40, 45, 50],
-	'Lateral Raises':        [12, 12, 15],
-	'Dips':                  [null, null, null],
-	'Lat Pulldown':          [90, 110, 130],
-	'Seated Cable Row':      [75, 90, 105],
-	'Hammer Curls':          [20, 25, 30]
+	'Bench Press':                    [125, 140, 160],
+	'Seated Shoulder Press':          [50, 60, 70],
+	'Arnold Press':                   [35, 35, 40],
+	'One Arm Bent-over Row':          [105, 125, 145],
+	'Pull up':                        [null, null, null],
+	'Hammer Curl':                    [20, 20, 25],
+	'Squat':                          [125, 170, 190, 210],
+	'Romanian Deadlift':              [125, 145, 145],
+	'Bulgarian Split Squat':          [40, 45, 50],
+	'Seated Calf Raise':              [80, 80, 100],
+	'Palms In Incline Bench Press':   [40, 45, 50],
+	'Lateral Raise':                  [12, 12, 15],
+	'Chest Dip':                      [null, null, null],
+	'Sliding Floor Pulldown on Towel':[null, null, null],
+	'Seated Row with Towel':          [null, null, null],
+	'Cross Body Hammer Curl':         [20, 25, 30]
 };
 
 const BASE_REPS: Record<string, number[]> = {
-	'Bench Press':           [10, 8, 6],
-	'Shoulder Press':        [10, 8, 6],
-	'Tricep Pushdown':       [12, 10, 8],
-	'Barbell Row':           [10, 8, 6],
-	'Pull-ups':              [10, 8, 6],
-	'Bicep Curls':           [12, 10, 8],
-	'Barbell Squat':         [8, 8, 6, 4],
-	'Romanian Deadlift':     [10, 8, 8],
-	'Leg Press':             [12, 10, 8],
-	'Calf Raises':           [15, 15, 12],
-	'Incline Dumbbell Press':[10, 8, 6],
-	'Lateral Raises':        [15, 12, 12],
-	'Dips':                  [12, 10, 8],
-	'Lat Pulldown':          [10, 8, 6],
-	'Seated Cable Row':      [10, 10, 8],
-	'Hammer Curls':          [12, 10, 8]
+	'Bench Press':                    [10, 8, 6],
+	'Seated Shoulder Press':          [10, 8, 6],
+	'Arnold Press':                   [12, 10, 8],
+	'One Arm Bent-over Row':          [10, 8, 6],
+	'Pull up':                        [10, 8, 6],
+	'Hammer Curl':                    [12, 10, 8],
+	'Squat':                          [8, 8, 6, 4],
+	'Romanian Deadlift':              [10, 8, 8],
+	'Bulgarian Split Squat':          [10, 8, 6],
+	'Seated Calf Raise':              [15, 15, 12],
+	'Palms In Incline Bench Press':   [10, 8, 6],
+	'Lateral Raise':                  [15, 12, 12],
+	'Chest Dip':                      [12, 10, 8],
+	'Sliding Floor Pulldown on Towel':[10, 8, 6],
+	'Seated Row with Towel':          [10, 10, 8],
+	'Cross Body Hammer Curl':         [12, 10, 8]
 };
 
 // Weight progression multiplier per week (simulates progressive overload)
@@ -136,6 +137,7 @@ function generateWeek(weekNum: number, weekStart: string): WeekHistory {
 				planned_day_id: dayId,
 				exercisedb_id: ex.exDbId,
 				exercise_name: ex.name,
+				body_parts: ex.bodyParts,
 				order: eIdx
 			});
 

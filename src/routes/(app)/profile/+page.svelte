@@ -6,13 +6,10 @@
 	import BottomSheet from '$lib/components/BottomSheet.svelte';
 	import AccountSheet from '$lib/components/AccountSheet.svelte';
 	import { mockWeekHistories } from '$lib/mock/profile-history';
-	import {
-		computeWeekMomentum,
-		computeStreak,
-		MUSCLE_GROUPS,
-		type MuscleGroup
-	} from '$lib/mock/profile';
+	import { computeWeekMomentum, computeStreak } from '$lib/mock/profile';
+	import { getTodayIndex } from '$lib/mock/workouts';
 	import WeekCard from '$lib/components/WeekCard.svelte';
+	import MuscleCard from '$lib/components/MuscleCard.svelte';
 
 	let accountSheetOpen = $state(false);
 	let email = $state('');
@@ -76,15 +73,9 @@
 	});
 
 	// Momentum data
-	const momentum = $derived(computeWeekMomentum(mockWeekHistories));
+	const momentum = $derived(computeWeekMomentum(mockWeekHistories, getTodayIndex()));
 	const streakData = $derived(computeStreak(mockWeekHistories));
 	const avatarInitial = $derived(email ? email[0].toUpperCase() : 'P');
-	function muscleHitLevel(muscle: MuscleGroup): 'none' | 'hit' | 'heavy' {
-		const sets = momentum.musclesHit.get(muscle) ?? 0;
-		if (sets === 0) return 'none';
-		if (sets >= 6) return 'heavy';
-		return 'hit';
-	}
 
 	// Display labels
 	const experienceLabels: Record<string, string> = {
@@ -195,24 +186,8 @@
 	<!-- This Week — the momentum centerpiece -->
 	<WeekCard {momentum} />
 
-	<!-- Muscles trained — body coverage filling in -->
-	<div class="group">
-		<div class="group-header-row">
-			<p class="group-label">Muscles Trained</p>
-			<span class="coverage-count">{momentum.muscleGroupsHit}/{momentum.totalMuscleGroups}</span>
-		</div>
-		<div class="muscle-grid">
-			{#each MUSCLE_GROUPS as muscle}
-				{@const level = muscleHitLevel(muscle)}
-				<div class="muscle-pill" class:hit={level === 'hit'} class:heavy={level === 'heavy'}>
-					<span class="muscle-name">{muscle}</span>
-					{#if level !== 'none'}
-						<span class="muscle-sets">{momentum.musclesHit.get(muscle)} sets</span>
-					{/if}
-				</div>
-			{/each}
-		</div>
-	</div>
+	<!-- Muscles trained -->
+	<MuscleCard {momentum} />
 
 	<!-- Streak + PRs — breadcrumbs of consistency -->
 	{#if momentum.streak > 0 || momentum.weekPRs.length > 0}
@@ -383,88 +358,6 @@
 		font-weight: 500;
 		color: #999;
 		padding: 0.125rem 0;
-	}
-
-	/* Groups */
-	.group {
-		display: flex;
-		flex-direction: column;
-		gap: 0.375rem;
-	}
-
-	.group-label {
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: #999;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		margin: 0;
-		padding-left: 0.25rem;
-	}
-
-	.group-header-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding-right: 0.25rem;
-	}
-
-	.coverage-count {
-		font-size: 0.75rem;
-		font-weight: 700;
-		color: #000;
-	}
-
-	/* Muscle Grid */
-	.muscle-grid {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.375rem;
-	}
-
-	.muscle-pill {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-		padding: 0.375rem 0.75rem;
-		border-radius: 100px;
-		border: 1px solid #e8e8e8;
-		background: #fff;
-		transition: all 0.2s ease;
-	}
-
-	.muscle-pill.hit {
-		background: #f5f5f5;
-		border-color: #ccc;
-	}
-
-	.muscle-pill.heavy {
-		background: #000;
-		border-color: #000;
-	}
-
-	.muscle-name {
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: #bbb;
-	}
-
-	.muscle-pill.hit .muscle-name {
-		color: #333;
-	}
-
-	.muscle-pill.heavy .muscle-name {
-		color: #fff;
-	}
-
-	.muscle-sets {
-		font-size: 0.6875rem;
-		font-weight: 600;
-		color: #999;
-	}
-
-	.muscle-pill.heavy .muscle-sets {
-		color: rgba(255, 255, 255, 0.7);
 	}
 
 	/* Wins */

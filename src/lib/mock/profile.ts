@@ -550,61 +550,62 @@ export function computeTotalPRCount(weeks: WeekHistory[]): number {
 	return computePersonalRecords(weeks).length;
 }
 
-// === Muscle Group Mapping ===
+// === Body Part Regions (for grouping ExerciseDB bodyParts) ===
 
-export const MUSCLE_GROUPS = [
-	'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps',
-	'Quads', 'Hamstrings', 'Glutes', 'Calves'
-] as const;
-
-export type MuscleGroup = typeof MUSCLE_GROUPS[number];
-
-const EXERCISE_MUSCLES: Record<string, MuscleGroup[]> = {
-	'Bench Press':           ['Chest', 'Triceps', 'Shoulders'],
-	'Shoulder Press':        ['Shoulders', 'Triceps'],
-	'Tricep Pushdown':       ['Triceps'],
-	'Barbell Row':           ['Back', 'Biceps'],
-	'Pull-ups':              ['Back', 'Biceps'],
-	'Bicep Curls':           ['Biceps'],
-	'Barbell Squat':         ['Quads', 'Glutes', 'Hamstrings'],
-	'Romanian Deadlift':     ['Hamstrings', 'Glutes', 'Back'],
-	'Leg Press':             ['Quads', 'Glutes'],
-	'Calf Raises':           ['Calves'],
-	'Incline Dumbbell Press':['Chest', 'Shoulders', 'Triceps'],
-	'Lateral Raises':        ['Shoulders'],
-	'Dips':                  ['Chest', 'Triceps'],
-	'Lat Pulldown':          ['Back', 'Biceps'],
-	'Seated Cable Row':      ['Back', 'Biceps'],
-	'Hammer Curls':          ['Biceps']
+export const BODY_REGIONS: Record<string, string[]> = {
+	'Upper Body': ['CHEST', 'BACK', 'SHOULDERS', 'UPPER ARMS', 'FOREARMS', 'TRICEPS', 'BICEPS', 'NECK'],
+	'Lower Body': ['QUADRICEPS', 'THIGHS', 'HIPS', 'CALVES'],
+	'Core': ['WAIST']
 };
 
-export function getMusclesForExercise(exerciseName: string): MuscleGroup[] {
-	return EXERCISE_MUSCLES[exerciseName] ?? [];
+export function getBodyRegion(bodyPart: string): string {
+	for (const [region, parts] of Object.entries(BODY_REGIONS)) {
+		if (parts.includes(bodyPart)) return region;
+	}
+	return 'Other';
 }
 
 // === Weekly Momentum ===
+
+export interface BodyPartExerciseDetail {
+	exerciseName: string;
+	sets: number;
+	exercisedbId: string;
+}
+
+export interface BodyPartScheduledDetail {
+	exerciseName: string;
+	dayLabel: string;
+	exercisedbId: string;
+}
 
 export interface WeekMomentum {
 	weekStart: string;
 	workoutsCompleted: number;
 	workoutsTotal: number;
-	musclesHit: Map<MuscleGroup, number>; // muscle → number of sets
-	totalMuscleGroups: number;
-	muscleGroupsHit: number;
-	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; muscles: MuscleGroup[]; volume: number; isRestDay: boolean; isReviewDay: boolean; exerciseNames: string[] }[];
+	bodyPartsHit: Map<string, number>; // body part → number of sets
+	totalBodyParts: number;
+	bodyPartsHitCount: number;
+	bodyPartExercises: Map<string, BodyPartExerciseDetail[]>; // per-exercise detail for sheet
+	bodyPartsScheduled: Map<string, BodyPartScheduledDetail[]>; // from future incomplete days
+	unmappedExercises: string[];
+	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; bodyParts: string[]; volume: number; isRestDay: boolean; isReviewDay: boolean; exerciseNames: string[] }[];
 	streak: number;
 	weekPRs: PersonalRecord[];
 }
 
-export function computeWeekMomentum(weeks: WeekHistory[]): WeekMomentum {
+export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): WeekMomentum {
 	const currentWeek = weeks[weeks.length - 1];
 	const stats = computeWeekStats(currentWeek);
 	const streak = computeStreak(weeks);
 	const weekIdx = weeks.length - 1;
 	const weekPRs = computeWeekPRs(weekIdx, weeks);
 
-	// Compute muscles hit this week
-	const musclesHit = new Map<MuscleGroup, number>();
+	const bodyPartsHit = new Map<string, number>();
+	const bodyPartExercises = new Map<string, BodyPartExerciseDetail[]>();
+	const bodyPartsScheduled = new Map<string, BodyPartScheduledDetail[]>();
+	const unmappedSet = new Set<string>();
+	const allBodyParts = new Set<string>();
 
 	const dayCompletions = currentWeek.days
 		.sort((a, b) => a.day_of_week - b.day_of_week)
@@ -613,12 +614,19 @@ export function computeWeekMomentum(weeks: WeekHistory[]): WeekMomentum {
 			const isCompleted = !day.is_rest_day && !day.is_review_day &&
 				isDayCompleted(day, currentWeek.exercises, currentWeek.setLogs);
 
-			const dayMuscles: Set<MuscleGroup> = new Set();
+			const dayBodyParts: Set<string> = new Set();
 			let volume = 0;
+
+			// Track all body parts in the plan (for total count)
+			for (const ex of dayExercises) {
+				for (const bp of ex.body_parts) allBodyParts.add(bp);
+				if (ex.body_parts.length === 0 && !day.is_rest_day && !day.is_review_day) {
+					unmappedSet.add(ex.exercise_name);
+				}
+			}
 
 			if (isCompleted) {
 				for (const ex of dayExercises) {
-					const muscles = getMusclesForExercise(ex.exercise_name);
 					const exSetLogs = currentWeek.setLogs.filter(
 						s => s.planned_exercise_id === ex.id && s.completed
 					);
@@ -629,9 +637,29 @@ export function computeWeekMomentum(weeks: WeekHistory[]): WeekMomentum {
 						}
 					}
 
-					for (const m of muscles) {
-						dayMuscles.add(m);
-						musclesHit.set(m, (musclesHit.get(m) ?? 0) + exSetLogs.length);
+					for (const bp of ex.body_parts) {
+						dayBodyParts.add(bp);
+						bodyPartsHit.set(bp, (bodyPartsHit.get(bp) ?? 0) + exSetLogs.length);
+
+						// Track per-exercise detail
+						if (!bodyPartExercises.has(bp)) bodyPartExercises.set(bp, []);
+						bodyPartExercises.get(bp)!.push({
+							exerciseName: ex.exercise_name,
+							sets: exSetLogs.length,
+							exercisedbId: ex.exercisedb_id
+						});
+					}
+				}
+			} else if (!day.is_rest_day && !day.is_review_day && todayIndex !== undefined && day.day_of_week > todayIndex) {
+				// Future incomplete training day — track as scheduled
+				for (const ex of dayExercises) {
+					for (const bp of ex.body_parts) {
+						if (!bodyPartsScheduled.has(bp)) bodyPartsScheduled.set(bp, []);
+						bodyPartsScheduled.get(bp)!.push({
+							exerciseName: ex.exercise_name,
+							dayLabel: day.label,
+							exercisedbId: ex.exercisedb_id
+						});
 					}
 				}
 			}
@@ -640,7 +668,7 @@ export function computeWeekMomentum(weeks: WeekHistory[]): WeekMomentum {
 				dayOfWeek: day.day_of_week,
 				label: day.label,
 				completed: isCompleted,
-				muscles: Array.from(dayMuscles),
+				bodyParts: Array.from(dayBodyParts),
 				volume,
 				isRestDay: day.is_rest_day,
 				isReviewDay: day.is_review_day,
@@ -652,9 +680,12 @@ export function computeWeekMomentum(weeks: WeekHistory[]): WeekMomentum {
 		weekStart: currentWeek.weekStart,
 		workoutsCompleted: stats.workoutsCompleted,
 		workoutsTotal: stats.workoutsTotal,
-		musclesHit,
-		totalMuscleGroups: MUSCLE_GROUPS.length,
-		muscleGroupsHit: musclesHit.size,
+		bodyPartsHit,
+		totalBodyParts: allBodyParts.size,
+		bodyPartsHitCount: bodyPartsHit.size,
+		bodyPartExercises,
+		bodyPartsScheduled,
+		unmappedExercises: Array.from(unmappedSet),
 		dayCompletions,
 		streak: streak.current,
 		weekPRs

@@ -1,20 +1,24 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+
 	let {
 		open = $bindable(),
 		title,
-		options,
+		options = [],
 		value = $bindable(null),
 		values = $bindable([]),
 		multiSelect = false,
-		onchange
+		onchange,
+		children
 	}: {
 		open: boolean;
 		title: string;
-		options: { value: string | number; label: string }[];
+		options?: { value: string | number; label: string }[];
 		value?: string | number | null;
 		values?: (string | number)[];
 		multiSelect?: boolean;
 		onchange?: () => void;
+		children?: Snippet;
 	} = $props();
 
 	let sheetEl: HTMLDivElement | undefined = $state();
@@ -98,28 +102,32 @@
 		>
 			<div class="handle"></div>
 			<h3 class="sheet-title">{title}</h3>
-			<ul class="option-list">
-				{#each options as opt}
-					<li>
-						<button
-							class="option-row"
-							class:selected={isSelected(opt.value)}
-							onclick={() => multiSelect ? toggleMulti(opt.value) : selectSingle(opt.value)}
-						>
-							<span class="option-label">{opt.label}</span>
-							{#if isSelected(opt.value)}
-								<svg class="checkmark" width="20" height="20" viewBox="0 0 20 20" fill="none">
-									<polyline points="4,10 8,14 16,6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-								</svg>
-							{/if}
-						</button>
-					</li>
-				{/each}
-			</ul>
-			{#if multiSelect}
-				<div class="done-wrapper">
-					<button class="done-btn" onclick={close}>Done</button>
-				</div>
+			{#if children}
+				{@render children()}
+			{:else}
+				<ul class="option-list">
+					{#each options as opt}
+						<li>
+							<button
+								class="option-row"
+								class:selected={isSelected(opt.value)}
+								onclick={() => multiSelect ? toggleMulti(opt.value) : selectSingle(opt.value)}
+							>
+								<span class="option-label">{opt.label}</span>
+								{#if isSelected(opt.value)}
+									<svg class="checkmark" width="20" height="20" viewBox="0 0 20 20" fill="none">
+										<polyline points="4,10 8,14 16,6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+									</svg>
+								{/if}
+							</button>
+						</li>
+					{/each}
+				</ul>
+				{#if multiSelect}
+					<div class="done-wrapper">
+						<button class="done-btn" onclick={close}>Done</button>
+					</div>
+				{/if}
 			{/if}
 		</div>
 	</div>
