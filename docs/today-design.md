@@ -213,7 +213,7 @@ Open app → See workout → Tap set column → Set logged
 ```
 
 ### Rest Day
-*Separate design doc needed.* Considerations: recovery context, tomorrow's workout preview, motivational content.
+See [Rest Day & Post-Workout Completion Design](./rest-day-design.md). Rest day shows recovery context, tomorrow's workout preview, and week progress.
 
 ### Review Day (Overlay)
 *Separate design doc needed.* Review is a task overlaid on a day, not a day type (see [product brief](./product-brief.md) and [review day model memory](../.claude/projects/-Users-andrewgatto-Documents-GitHub-MYOA-push/memory/project_review_day_model.md)). Needs design for: ingress on Today, review content, "Start Next Week" transition. No competitive precedent — core differentiator per research [[ISSUE-6-I009]].
@@ -227,9 +227,12 @@ Open app → See workout → Tap set column → Set logged
 
 When all sets across all exercises are done:
 - Progress shows full (e.g., "9 of 9 sets")
-- A completion card appears above the exercise list
+- A completion card appears above the exercise list with moderate stat highlight when relevant (e.g., "New PR: Squat 225 × 4")
+- Tomorrow's workout preview and week progress appear below the dimmed tiles
 - Exercise tiles remain visible but dimmed (user can undo)
 - No automatic navigation away
+
+See [Rest Day & Post-Workout Completion Design](./rest-day-design.md) for full details on the completion state, shared components, and stat highlight rules.
 
 ---
 

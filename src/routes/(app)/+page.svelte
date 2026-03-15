@@ -62,6 +62,10 @@
 		exercises={todayExercises}
 		plannedSets={todayPlannedSets}
 		setLogs={todaySetLogs}
+		currentDayIndex={dayIndex}
+		allDays={mockPlannedDays}
+		allExercises={mockPlannedExercises}
+		allPlannedSets={mockPlannedSets}
 	/>
 </div>
 
