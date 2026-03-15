@@ -1,108 +1,133 @@
 <script lang="ts">
 	import type { WeekMomentum, BodyPartExerciseDetail, BodyPartScheduledDetail } from '$lib/mock/profile';
-	import { BODY_REGIONS, getBodyRegion } from '$lib/mock/profile';
 	import BottomSheet from '$lib/components/BottomSheet.svelte';
 
 	let { momentum }: {
 		momentum: WeekMomentum;
 	} = $props();
 
-	let selectedBodyPart: string | null = $state(null);
+	const BODY_ZONES = [
+		{ id: 'shoulders', label: 'Shoulders', bodyParts: ['SHOULDERS'] },
+		{ id: 'torso', label: 'Chest & Back', bodyParts: ['CHEST', 'BACK'] },
+		{ id: 'arms', label: 'Arms', bodyParts: ['UPPER ARMS', 'TRICEPS', 'FOREARMS'] },
+		{ id: 'core', label: 'Core', bodyParts: ['WAIST', 'HIPS'] },
+		{ id: 'upperLegs', label: 'Upper Legs', bodyParts: ['QUADRICEPS', 'THIGHS'] },
+		{ id: 'calves', label: 'Calves', bodyParts: ['CALVES'] },
+	];
+
+	type BodyZone = typeof BODY_ZONES[number];
+
+	let selectedZone: BodyZone | null = $state(null);
 	let detailSheetOpen = $state(false);
 
-	// Collect all unique body parts from the plan, grouped by region
-	const groupedBodyParts = $derived(() => {
-		const all = new Set<string>();
-		// From hit
-		for (const bp of momentum.bodyPartsHit.keys()) all.add(bp);
-		// From scheduled
-		for (const bp of momentum.bodyPartsScheduled.keys()) all.add(bp);
-		// From day completions
-		for (const day of momentum.dayCompletions) {
-			for (const bp of day.bodyParts) all.add(bp);
-		}
-
-		const groups: { region: string; parts: string[] }[] = [];
-		for (const [region, regionParts] of Object.entries(BODY_REGIONS)) {
-			const matching = regionParts.filter(bp => all.has(bp));
-			if (matching.length > 0) {
-				groups.push({ region, parts: matching });
+	function zoneExerciseCount(zone: BodyZone): number {
+		const seen = new Set<string>();
+		for (const bp of zone.bodyParts) {
+			for (const ex of (momentum.bodyPartExercises.get(bp) ?? [])) {
+				seen.add(ex.exercisedbId);
 			}
 		}
-		// Handle any body parts not in known regions
-		const knownParts = new Set(Object.values(BODY_REGIONS).flat());
-		const unknown = [...all].filter(bp => !knownParts.has(bp));
-		if (unknown.length > 0) {
-			groups.push({ region: 'Other', parts: unknown });
-		}
-		return groups;
-	});
+		return seen.size;
+	}
 
-	function bodyPartState(bodyPart: string): 'none' | 'hit' | 'heavy' | 'scheduled' {
-		const sets = momentum.bodyPartsHit.get(bodyPart) ?? 0;
-		if (sets >= 6) return 'heavy';
-		if (sets > 0) return 'hit';
-		if (momentum.bodyPartsScheduled.has(bodyPart)) return 'scheduled';
+	function zoneScheduledCount(zone: BodyZone): number {
+		const seen = new Set<string>();
+		for (const bp of zone.bodyParts) {
+			for (const ex of (momentum.bodyPartsScheduled.get(bp) ?? [])) {
+				seen.add(ex.exercisedbId);
+			}
+		}
+		return seen.size;
+	}
+
+	function zoneState(zone: BodyZone): 'none' | 'scheduled' | 'hit' {
+		if (zoneExerciseCount(zone) > 0) return 'hit';
+		if (zoneScheduledCount(zone) > 0) return 'scheduled';
 		return 'none';
 	}
 
-	function formatBodyPartLabel(bp: string): string {
-		return bp.charAt(0) + bp.slice(1).toLowerCase();
-	}
-
-	function openDetail(bodyPart: string) {
-		selectedBodyPart = bodyPart;
+	function openZone(zone: BodyZone) {
+		selectedZone = zone;
 		detailSheetOpen = true;
 	}
 
-	let selectedHitExercises = $derived(
-		selectedBodyPart ? (momentum.bodyPartExercises.get(selectedBodyPart) ?? []) : []
-	);
+	let selectedHitExercises = $derived.by(() => {
+		if (!selectedZone) return [];
+		const all: BodyPartExerciseDetail[] = [];
+		const seen = new Set<string>();
+		for (const bp of selectedZone.bodyParts) {
+			for (const ex of (momentum.bodyPartExercises.get(bp) ?? [])) {
+				if (!seen.has(ex.exercisedbId)) {
+					seen.add(ex.exercisedbId);
+					all.push(ex);
+				}
+			}
+		}
+		return all;
+	});
 
-	let selectedScheduledExercises = $derived(
-		selectedBodyPart ? (momentum.bodyPartsScheduled.get(selectedBodyPart) ?? []) : []
-	);
+	let selectedScheduledExercises = $derived.by(() => {
+		if (!selectedZone) return [];
+		const all: BodyPartScheduledDetail[] = [];
+		const seen = new Set<string>();
+		for (const bp of selectedZone.bodyParts) {
+			for (const ex of (momentum.bodyPartsScheduled.get(bp) ?? [])) {
+				if (!seen.has(ex.exercisedbId)) {
+					seen.add(ex.exercisedbId);
+					all.push(ex);
+				}
+			}
+		}
+		return all;
+	});
+
 </script>
 
 <div class="muscle-card">
 	<div class="card-header">
 		<p class="card-label">Muscles Trained</p>
-		<span class="coverage-count">{momentum.bodyPartsHitCount}/{momentum.totalBodyParts}</span>
 	</div>
 
-	{#each groupedBodyParts() as group}
-		<div class="body-region">
-			{#if groupedBodyParts().length > 1}
-				<span class="region-label">{group.region}</span>
-			{/if}
-			<div class="pill-row">
-				{#each group.parts as bp}
-					{@const state = bodyPartState(bp)}
-					{@const sets = momentum.bodyPartsHit.get(bp) ?? 0}
-					<button
-						class="body-pill {state}"
-						onclick={() => openDetail(bp)}
-					>
-						<span class="pill-name">{formatBodyPartLabel(bp)}</span>
-						{#if state === 'hit' || state === 'heavy'}
-							<span class="pill-sets">{sets} sets</span>
-						{/if}
-					</button>
-				{/each}
-			</div>
-		</div>
-	{/each}
+	<div class="zone-stack">
+		{#each BODY_ZONES as zone}
+			{@const state = zoneState(zone)}
+			{@const count = zoneExerciseCount(zone)}
+			{@const scheduled = zoneScheduledCount(zone)}
+			{@const total = count + scheduled}
+			<button
+				class="zone-row {state}"
+				onclick={() => openZone(zone)}
+			>
+				<span class="zone-label">{zone.label}</span>
+				<div class="zone-bar-track">
+					{#if count > 0}
+						<div
+							class="zone-bar-fill"
+							style="width: {Math.min(count / 4 * 100, 100)}%"
+						></div>
+					{:else if state === 'scheduled'}
+						<div class="zone-bar-scheduled"></div>
+					{/if}
+				</div>
+				{#if count > 0}
+					<span class="zone-count">{count}</span>
+				{:else if scheduled > 0}
+					<span class="zone-count scheduled">{scheduled}</span>
+				{/if}
+			</button>
+		{/each}
+	</div>
 
 	{#if momentum.unmappedExercises.length > 0}
-		<p class="unmapped-note">{momentum.unmappedExercises.length} exercise{momentum.unmappedExercises.length === 1 ? '' : 's'} not tracked</p>
+		<p class="unmapped-note">{momentum.unmappedExercises.length} exercise{momentum.unmappedExercises.length === 1 ? '' : 's'} not mapped to body parts</p>
 	{/if}
 </div>
 
-<BottomSheet bind:open={detailSheetOpen} title={selectedBodyPart ? formatBodyPartLabel(selectedBodyPart) : ''}>
+<BottomSheet bind:open={detailSheetOpen} title={selectedZone?.label ?? ''}>
 	{#snippet children()}
 		<div class="detail-content">
 			{#if selectedHitExercises.length > 0}
-				<p class="detail-section-label">This Week</p>
+				<p class="detail-section-label">This Week — {selectedHitExercises.length} exercise{selectedHitExercises.length === 1 ? '' : 's'}</p>
 				{#each selectedHitExercises as ex}
 					<a href="/exercise/{ex.exercisedbId}" class="detail-row">
 						<span class="detail-name">{ex.exerciseName}</span>
@@ -122,7 +147,7 @@
 			{/if}
 
 			{#if selectedHitExercises.length === 0 && selectedScheduledExercises.length === 0}
-				<p class="detail-empty">No exercises for this muscle this week</p>
+				<p class="detail-empty">No exercises for this area this week</p>
 			{/if}
 		</div>
 	{/snippet}
@@ -136,9 +161,6 @@
 	}
 
 	.card-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
 		padding: 0 0.25rem;
 	}
 
@@ -151,104 +173,101 @@
 		margin: 0;
 	}
 
-	.coverage-count {
-		font-size: 0.75rem;
-		font-weight: 700;
-		color: #000;
-	}
-
-	/* Body regions */
-	.body-region {
+	/* Zone stack */
+	.zone-stack {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 2px;
+		border-radius: 12px;
+		overflow: hidden;
 	}
 
-	.region-label {
-		font-size: 0.6875rem;
-		font-weight: 500;
-		color: #bbb;
-		padding-left: 0.25rem;
-	}
-
-	.pill-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.375rem;
-	}
-
-	/* Pills */
-	.body-pill {
+	.zone-row {
 		display: flex;
 		align-items: center;
-		gap: 0.375rem;
-		padding: 0.375rem 0.75rem;
-		min-height: 44px;
-		border-radius: 100px;
-		border: 1px solid #e8e8e8;
-		background: #fff;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		min-height: 48px;
+		background: #fafafa;
+		border: none;
 		cursor: pointer;
 		font-family: inherit;
-		transition: all 0.2s ease;
 		-webkit-tap-highlight-color: transparent;
+		transition: background 0.15s ease;
 	}
 
-	.body-pill:active {
-		transform: scale(0.96);
+	.zone-row:active {
+		background: #f0f0f0;
 	}
 
-	.body-pill.hit {
-		background: #f5f5f5;
-		border-color: #ccc;
-	}
-
-	.body-pill.heavy {
-		background: #000;
-		border-color: #000;
-	}
-
-	.body-pill.scheduled {
-		border-style: dashed;
-		border-color: #ccc;
-	}
-
-	.pill-name {
+	.zone-label {
 		font-size: 0.8125rem;
 		font-weight: 500;
-		color: #bbb;
+		color: #999;
+		width: 5.5rem;
+		flex-shrink: 0;
+		text-align: left;
 	}
 
-	.body-pill.hit .pill-name {
+	.zone-row.hit .zone-label {
 		color: #333;
 	}
 
-	.body-pill.heavy .pill-name {
-		color: #fff;
+	/* Bar track */
+	.zone-bar-track {
+		flex: 1;
+		height: 6px;
+		background: #eee;
+		border-radius: 3px;
+		overflow: hidden;
 	}
 
-	.body-pill.scheduled .pill-name {
-		color: #999;
+	.zone-bar-fill {
+		height: 100%;
+		border-radius: 3px;
+		transition: width 0.4s ease;
 	}
 
-	.pill-sets {
-		font-size: 0.6875rem;
+	.zone-bar-fill {
+		background: #1a1a1a;
+	}
+
+	.zone-bar-scheduled {
+		width: 100%;
+		height: 100%;
+		background: repeating-linear-gradient(
+			90deg,
+			#ddd 0px,
+			#ddd 4px,
+			transparent 4px,
+			transparent 8px
+		);
+		border-radius: 3px;
+	}
+
+	/* Exercise count */
+	.zone-count {
+		font-size: 0.75rem;
 		font-weight: 600;
-		color: #999;
+		color: #000;
+		width: 1.5rem;
+		text-align: right;
+		flex-shrink: 0;
 	}
 
-	.body-pill.heavy .pill-sets {
-		color: rgba(255, 255, 255, 0.7);
+	.zone-count.scheduled {
+		color: #bbb;
 	}
 
-	/* Unmapped note */
+	/* Unmapped */
 	.unmapped-note {
 		font-size: 0.6875rem;
 		color: #bbb;
 		margin: 0;
-		padding-left: 0.25rem;
+		text-align: center;
 	}
 
-	/* Detail sheet content */
+	/* Detail sheet */
 	.detail-content {
 		padding: 0 0 0.5rem;
 	}
