@@ -47,6 +47,8 @@ export interface PlannedExercise {
 	exercisedb_id: string;
 	exercise_name: string; // denormalized for display
 	body_parts: string[]; // denormalized from ExerciseDB
+	equipments: string[]; // denormalized from ExerciseDB (e.g., ["dumbbell", "bench"])
+	cue?: string; // AI-prescribed modification (e.g., "slow eccentric", "neutral grip")
 	order: number;
 }
 

@@ -138,6 +138,7 @@ function generateWeek(weekNum: number, weekStart: string): WeekHistory {
 				exercisedb_id: ex.exDbId,
 				exercise_name: ex.name,
 				body_parts: ex.bodyParts,
+				equipments: [],
 				order: eIdx
 			});
 

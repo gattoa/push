@@ -416,6 +416,7 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 				exercisedb_id: tmpl.exercisedbId,
 				exercise_name: tmpl.name,
 				body_parts: tmpl.bodyParts,
+				equipments: [],
 				order: exIdx
 			});
 

@@ -20,32 +20,32 @@ export const mockPlannedDays: PlannedDay[] = [
 
 export const mockPlannedExercises: PlannedExercise[] = [
 	// Monday - Push
-	{ id: 'ex-0-0', planned_day_id: 'day-0', exercisedb_id: 'exr_41n2hxnFMotsXTj3', exercise_name: 'Bench Press', body_parts: ['CHEST'], order: 0 },
-	{ id: 'ex-0-1', planned_day_id: 'day-0', exercisedb_id: 'exr_41n2hs6camM22yBG', exercise_name: 'Seated Shoulder Press', body_parts: ['SHOULDERS'], order: 1 },
-	{ id: 'ex-0-2', planned_day_id: 'day-0', exercisedb_id: 'exr_41n2hMRXm49mM62z', exercise_name: 'Arnold Press', body_parts: ['SHOULDERS'], order: 2 },
+	{ id: 'ex-0-0', planned_day_id: 'day-0', exercisedb_id: 'exr_41n2hxnFMotsXTj3', exercise_name: 'Bench Press', body_parts: ['CHEST'], equipments: ['barbell', 'bench'], cue: 'slow eccentric', order: 0 },
+	{ id: 'ex-0-1', planned_day_id: 'day-0', exercisedb_id: 'exr_41n2hs6camM22yBG', exercise_name: 'Seated Shoulder Press', body_parts: ['SHOULDERS'], equipments: ['dumbbell'], order: 1 },
+	{ id: 'ex-0-2', planned_day_id: 'day-0', exercisedb_id: 'exr_41n2hMRXm49mM62z', exercise_name: 'Arnold Press', body_parts: ['SHOULDERS'], equipments: ['dumbbell'], cue: '2-sec pause at top', order: 2 },
 
 	// Tuesday - Pull
-	{ id: 'ex-1-0', planned_day_id: 'day-1', exercisedb_id: 'exr_41n2hHdjQpnyNdie', exercise_name: 'One Arm Bent-over Row', body_parts: ['BACK'], order: 0 },
-	{ id: 'ex-1-1', planned_day_id: 'day-1', exercisedb_id: 'exr_41n2hU4y6EaYXFhr', exercise_name: 'Pull up', body_parts: ['BACK'], order: 1 },
-	{ id: 'ex-1-2', planned_day_id: 'day-1', exercisedb_id: 'exr_41n2hGioS8HumEF7', exercise_name: 'Hammer Curl', body_parts: ['FOREARMS'], order: 2 },
+	{ id: 'ex-1-0', planned_day_id: 'day-1', exercisedb_id: 'exr_41n2hHdjQpnyNdie', exercise_name: 'One Arm Bent-over Row', body_parts: ['BACK'], equipments: ['dumbbell'], order: 0 },
+	{ id: 'ex-1-1', planned_day_id: 'day-1', exercisedb_id: 'exr_41n2hU4y6EaYXFhr', exercise_name: 'Pull up', body_parts: ['BACK'], equipments: ['body weight'], order: 1 },
+	{ id: 'ex-1-2', planned_day_id: 'day-1', exercisedb_id: 'exr_41n2hGioS8HumEF7', exercise_name: 'Hammer Curl', body_parts: ['FOREARMS'], equipments: ['dumbbell'], order: 2 },
 
 	// Wednesday - Legs
-	{ id: 'ex-2-0', planned_day_id: 'day-2', exercisedb_id: 'exr_41n2hmGR8WuVfe1U', exercise_name: 'Squat', body_parts: ['QUADRICEPS', 'THIGHS'], order: 0 },
-	{ id: 'ex-2-1', planned_day_id: 'day-2', exercisedb_id: 'exr_41n2hn8rpbYihzEW', exercise_name: 'Romanian Deadlift', body_parts: ['HIPS'], order: 1 },
-	{ id: 'ex-2-2', planned_day_id: 'day-2', exercisedb_id: 'exr_41n2hpLLs1uU5atr', exercise_name: 'Bulgarian Split Squat', body_parts: ['QUADRICEPS', 'THIGHS'], order: 2 },
-	{ id: 'ex-2-3', planned_day_id: 'day-2', exercisedb_id: 'exr_41n2hTs4q3ihihZs', exercise_name: 'Seated Calf Raise', body_parts: ['CALVES'], order: 3 },
+	{ id: 'ex-2-0', planned_day_id: 'day-2', exercisedb_id: 'exr_41n2hmGR8WuVfe1U', exercise_name: 'Squat', body_parts: ['QUADRICEPS', 'THIGHS'], equipments: ['barbell', 'squat rack'], order: 0 },
+	{ id: 'ex-2-1', planned_day_id: 'day-2', exercisedb_id: 'exr_41n2hn8rpbYihzEW', exercise_name: 'Romanian Deadlift', body_parts: ['HIPS'], equipments: ['barbell'], cue: 'hinge at hips', order: 1 },
+	{ id: 'ex-2-2', planned_day_id: 'day-2', exercisedb_id: 'exr_41n2hpLLs1uU5atr', exercise_name: 'Bulgarian Split Squat', body_parts: ['QUADRICEPS', 'THIGHS'], equipments: ['dumbbell', 'bench'], order: 2 },
+	{ id: 'ex-2-3', planned_day_id: 'day-2', exercisedb_id: 'exr_41n2hTs4q3ihihZs', exercise_name: 'Seated Calf Raise', body_parts: ['CALVES'], equipments: ['machine'], order: 3 },
 
 	// Thursday - Rest (no exercises)
 
 	// Friday - Push
-	{ id: 'ex-4-0', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hsVHu7B1MTdr', exercise_name: 'Palms In Incline Bench Press', body_parts: ['UPPER ARMS'], order: 0 },
-	{ id: 'ex-4-1', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hjuGpcex14w7', exercise_name: 'Lateral Raise', body_parts: ['SHOULDERS'], order: 1 },
-	{ id: 'ex-4-2', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hkK8hGAcSnW7', exercise_name: 'Chest Dip', body_parts: ['CHEST'], order: 2 },
+	{ id: 'ex-4-0', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hsVHu7B1MTdr', exercise_name: 'Palms In Incline Bench Press', body_parts: ['UPPER ARMS'], equipments: ['dumbbell', 'bench'], cue: 'neutral grip', order: 0 },
+	{ id: 'ex-4-1', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hjuGpcex14w7', exercise_name: 'Lateral Raise', body_parts: ['SHOULDERS'], equipments: ['dumbbell'], order: 1 },
+	{ id: 'ex-4-2', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hkK8hGAcSnW7', exercise_name: 'Chest Dip', body_parts: ['CHEST'], equipments: ['body weight'], order: 2 },
 
 	// Saturday - Pull
-	{ id: 'ex-5-0', planned_day_id: 'day-5', exercisedb_id: 'exr_41n2hadPLLFRGvFk', exercise_name: 'Sliding Floor Pulldown on Towel', body_parts: ['BACK'], order: 0 },
-	{ id: 'ex-5-1', planned_day_id: 'day-5', exercisedb_id: 'exr_41n2hcFJpBvAkXCP', exercise_name: 'Seated Row with Towel', body_parts: ['BACK'], order: 1 },
-	{ id: 'ex-5-2', planned_day_id: 'day-5', exercisedb_id: 'exr_41n2hgCHNgtVLHna', exercise_name: 'Cross Body Hammer Curl', body_parts: ['FOREARMS'], order: 2 }
+	{ id: 'ex-5-0', planned_day_id: 'day-5', exercisedb_id: 'exr_41n2hadPLLFRGvFk', exercise_name: 'Sliding Floor Pulldown on Towel', body_parts: ['BACK'], equipments: ['towel'], order: 0 },
+	{ id: 'ex-5-1', planned_day_id: 'day-5', exercisedb_id: 'exr_41n2hcFJpBvAkXCP', exercise_name: 'Seated Row with Towel', body_parts: ['BACK'], equipments: ['towel'], order: 1 },
+	{ id: 'ex-5-2', planned_day_id: 'day-5', exercisedb_id: 'exr_41n2hgCHNgtVLHna', exercise_name: 'Cross Body Hammer Curl', body_parts: ['FOREARMS'], equipments: ['dumbbell'], order: 2 }
 ];
 
 export const mockPlannedSets: PlannedSet[] = [

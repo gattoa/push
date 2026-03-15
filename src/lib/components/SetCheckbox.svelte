@@ -2,9 +2,10 @@
 	import type { PlannedSet, SetLog } from '$lib/types';
 	import { getPreferences } from '$lib/stores/preferences';
 
-	let { plannedSet, setLog }: {
+	let { plannedSet, setLog, onComplete }: {
 		plannedSet: PlannedSet;
 		setLog: SetLog;
+		onComplete?: () => void;
 	} = $props();
 
 	const units = getPreferences().units;
@@ -14,65 +15,76 @@
 		if (setLog.completed) {
 			setLog.actual_reps = plannedSet.target_reps;
 			setLog.actual_weight = plannedSet.target_weight;
+			onComplete?.();
+		} else {
+			setLog.actual_reps = null;
+			setLog.actual_weight = null;
 		}
 	}
 
 	const weightLabel = $derived(
-		plannedSet.target_weight === null ? 'BW' : `${plannedSet.target_weight} ${units}`
+		plannedSet.target_weight === null ? 'BW' : `${plannedSet.target_weight}`
 	);
+	const hasWeight = $derived(plannedSet.target_weight !== null);
 </script>
 
-<button class="set-row" class:completed={setLog.completed} onclick={toggle}>
-	<div class="checkbox" class:checked={setLog.completed}>
-		{#if setLog.completed}
-			<svg width="10" height="10" viewBox="0 0 16 16" fill="none">
-				<polyline points="3,8 6.5,11.5 13,4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-			</svg>
-		{/if}
-	</div>
-	<span class="set-label">{weightLabel} × {plannedSet.target_reps}</span>
+<button
+	class="set-col"
+	class:completed={setLog.completed}
+	onclick={toggle}
+	aria-label={setLog.completed ? `Undo set ${plannedSet.set_number}` : `Complete set ${plannedSet.set_number}: ${weightLabel} ${hasWeight ? units : ''} × ${plannedSet.target_reps}`}
+>
+	<span class="reps">
+		{#if setLog.completed}<span class="check">✓</span>{/if}{plannedSet.target_reps}
+	</span>
+	<span class="weight">{weightLabel}</span>
 </button>
 
 <style>
-	.set-row {
+	.set-col {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		gap: 0.625rem;
-		padding: 0.375rem 0;
+		gap: 0.125rem;
+		min-width: 44px;
+		min-height: 44px;
+		padding: 0.375rem 0.5rem;
 		background: none;
-		border: none;
+		border: 1px solid transparent;
+		border-radius: 8px;
 		cursor: pointer;
 		font-family: inherit;
-		width: 100%;
-		text-align: left;
-	}
-
-	.checkbox {
-		width: 22px;
-		height: 22px;
-		border-radius: 6px;
-		border: 2px solid #ddd;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
 		transition: all 0.15s;
-		color: #fff;
 	}
 
-	.checkbox.checked {
-		background: #000;
-		border-color: #000;
+	.set-col:active {
+		transform: scale(0.93);
 	}
 
-	.set-label {
-		font-size: 0.875rem;
-		color: #333;
-		font-weight: 500;
+	.set-col.completed {
+		opacity: 0.4;
 	}
 
-	.set-row.completed .set-label {
-		color: #bbb;
+	.reps {
+		font-size: 1.0625rem;
+		font-weight: 700;
+		color: #000;
+		line-height: 1.2;
+	}
+
+	.set-col.completed .reps {
 		text-decoration: line-through;
+	}
+
+	.check {
+		font-size: 0.75rem;
+		margin-right: 0.125rem;
+	}
+
+	.weight {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		color: #999;
+		line-height: 1.2;
 	}
 </style>
