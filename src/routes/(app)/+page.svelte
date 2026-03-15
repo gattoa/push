@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { mockPlannedDays, mockPlannedSets, mockPlannedExercises, mockSetLogs, getTodayIndex } from '$lib/mock/workouts';
 	import DailyWorkout from '$lib/components/DailyWorkout.svelte';
+	import type { PlannedDay, PlannedExercise } from '$lib/types';
 
 	let dayIndex = $state(getTodayIndex());
 
@@ -31,6 +32,19 @@
 	const totalSets = $derived(todayPlannedSets.length);
 	const progressPct = $derived(totalSets > 0 ? (completedSets / totalSets) * 100 : 0);
 	const bodyParts = $derived([...new Set(todayExercises.flatMap(e => e.body_parts))]);
+
+	// Next training day (for rest day display)
+	const nextTrainingDay = $derived((): { day: PlannedDay; exercises: PlannedExercise[] } | null => {
+		for (let offset = 1; offset <= 7; offset++) {
+			const idx = (dayIndex + offset) % 7;
+			const day = mockPlannedDays[idx];
+			if (day && !day.is_rest_day && !day.is_review_day) {
+				const exs = mockPlannedExercises.filter(e => e.planned_day_id === day.id);
+				return { day, exercises: exs };
+			}
+		}
+		return null;
+	});
 </script>
 
 <div class="today-page">
@@ -53,7 +67,13 @@
 			<div class="progress-track">
 				<div class="progress-fill" style="width: {progressPct}%"></div>
 			</div>
-			<span class="progress-text">{completedSets} of {totalSets} sets</span>
+			<span class="progress-text">
+				{#if progressPct === 100}
+					Complete
+				{:else}
+					{completedSets} of {totalSets} sets
+				{/if}
+			</span>
 		</div>
 	{/if}
 
@@ -62,10 +82,7 @@
 		exercises={todayExercises}
 		plannedSets={todayPlannedSets}
 		setLogs={todaySetLogs}
-		currentDayIndex={dayIndex}
-		allDays={mockPlannedDays}
-		allExercises={mockPlannedExercises}
-		allPlannedSets={mockPlannedSets}
+		nextSession={nextTrainingDay()}
 	/>
 </div>
 

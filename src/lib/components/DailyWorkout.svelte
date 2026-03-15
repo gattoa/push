@@ -1,20 +1,17 @@
 <script lang="ts">
 	import type { PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
 	import ExerciseTile from './ExerciseTile.svelte';
-	import TomorrowPreview from './TomorrowPreview.svelte';
-	import WeekSummary from './WeekSummary.svelte';
 
-	let { plannedDay, exercises, plannedSets, setLogs, onSetComplete, currentDayIndex, allDays, allExercises, allPlannedSets }: {
+	let { plannedDay, exercises, plannedSets, setLogs, onSetComplete, nextSession }: {
 		plannedDay: PlannedDay;
 		exercises: PlannedExercise[];
 		plannedSets: PlannedSet[];
 		setLogs: SetLog[];
 		onSetComplete?: () => void;
-		currentDayIndex: number;
-		allDays: PlannedDay[];
-		allExercises: PlannedExercise[];
-		allPlannedSets: PlannedSet[];
+		nextSession?: { day: PlannedDay; exercises: PlannedExercise[] } | null;
 	} = $props();
+
+	const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 	const totalSets = $derived(plannedSets.length);
 	const completedSets = $derived(setLogs.filter(s => s.completed).length);
@@ -29,20 +26,6 @@
 	});
 
 	const sorted = $derived(exercises.toSorted((a, b) => a.order - b.order));
-
-	// Recovery context: body parts from the most recent training day before today
-	const recoveringParts = $derived(() => {
-		for (let offset = 1; offset <= 6; offset++) {
-			const idx = currentDayIndex - offset;
-			if (idx < 0) break;
-			const day = allDays[idx];
-			if (day && !day.is_rest_day && !day.is_review_day) {
-				const dayExercises = allExercises.filter(e => e.planned_day_id === day.id);
-				return [...new Set(dayExercises.flatMap(e => e.body_parts))];
-			}
-		}
-		return [];
-	});
 </script>
 
 {#if plannedDay.is_review_day}
@@ -51,51 +34,27 @@
 		<p>Review Day</p>
 	</div>
 {:else if plannedDay.is_rest_day}
-	<div class="rest-day-content">
-		{#if recoveringParts().length > 0}
-			<div class="recovery-card">
-				<span class="recovery-label">Recovering</span>
-				<div class="recovery-parts">
-					{#each recoveringParts() as part}
-						<span class="recovery-chip">{part.toLowerCase()}</span>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
-		<TomorrowPreview
-			{currentDayIndex}
-			days={allDays}
-			exercises={allExercises}
-			plannedSets={allPlannedSets}
-		/>
-
-		<WeekSummary {currentDayIndex} days={allDays} />
-	</div>
-{:else}
-	{#if allDone}
-		<div class="complete-card">
-			<p class="complete-title">Workout Complete</p>
-			<p class="complete-sub">{totalSets} sets · {exercises.length} exercises</p>
+	{#if nextSession}
+		<div class="next-session">
+			<span class="next-session-header">
+				{DAY_NAMES[nextSession.day.day_of_week]} · {nextSession.day.label}
+			</span>
+			<ul class="next-session-exercises">
+				{#each nextSession.exercises.toSorted((a, b) => a.order - b.order) as exercise}
+					<li>
+						<span class="exercise-name">{exercise.exercise_name}</span>
+						<span class="exercise-body-parts">{exercise.body_parts.map(p => p.toLowerCase()).join(', ')}</span>
+					</li>
+				{/each}
+			</ul>
 		</div>
 	{/if}
-
-	{#if allDone}
-		<TomorrowPreview
-			{currentDayIndex}
-			days={allDays}
-			exercises={allExercises}
-			plannedSets={allPlannedSets}
-		/>
-		<WeekSummary {currentDayIndex} days={allDays} />
-	{/if}
-
-	<div class="exercise-list" class:dimmed={allDone}>
+{:else}
+	<div class="exercise-list">
 		{#each sorted as exercise, i (exercise.id)}
 			{@const exPlannedSets = plannedSets.filter(s => s.planned_exercise_id === exercise.id)}
 			{@const exSetLogs = setLogs.filter(s => s.planned_exercise_id === exercise.id)}
 			{@const prevExercise = i > 0 ? sorted[i - 1] : null}
-			{@const isStartOfSuperset = exercise.superset_group && (!prevExercise || prevExercise.superset_group !== exercise.superset_group)}
 			{@const isContinuationOfSuperset = exercise.superset_group && prevExercise?.superset_group === exercise.superset_group}
 
 			{#if isContinuationOfSuperset}
@@ -115,6 +74,7 @@
 			/>
 		{/each}
 	</div>
+
 {/if}
 
 <style>
@@ -122,10 +82,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.625rem;
-	}
-
-	.exercise-list.dimmed {
-		opacity: 0.6;
 	}
 
 	.superset-connector {
@@ -154,43 +110,45 @@
 		white-space: nowrap;
 	}
 
-	.rest-day-content {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.recovery-card {
+	.next-session {
 		background: #fff;
 		border: 1px solid #e8e8e8;
 		border-radius: 14px;
 		padding: 1rem;
+	}
+
+	.next-session-header {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: #999;
+		letter-spacing: -0.01em;
+	}
+
+	.next-session-exercises {
+		list-style: none;
+		margin: 0.75rem 0 0;
+		padding: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
 	}
 
-	.recovery-label {
-		font-size: 0.6875rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #bbb;
-	}
-
-	.recovery-parts {
+	.next-session-exercises li {
 		display: flex;
-		gap: 0.25rem;
-		flex-wrap: wrap;
+		justify-content: space-between;
+		align-items: baseline;
 	}
 
-	.recovery-chip {
-		font-size: 0.75rem;
+	.exercise-name {
+		font-size: 0.9375rem;
 		font-weight: 600;
-		color: #555;
-		background: #f2f2f2;
-		padding: 0.25rem 0.625rem;
-		border-radius: 100px;
+		color: #000;
+	}
+
+	.exercise-body-parts {
+		font-size: 0.75rem;
+		color: #999;
+		font-weight: 500;
 	}
 
 	.placeholder-card {
@@ -207,24 +165,4 @@
 		margin: 0;
 	}
 
-	.complete-card {
-		background: #000;
-		border-radius: 14px;
-		padding: 1.5rem 1rem;
-		text-align: center;
-		margin-bottom: 0.5rem;
-	}
-
-	.complete-title {
-		font-size: 1.125rem;
-		font-weight: 700;
-		color: #fff;
-		margin: 0 0 0.25rem;
-	}
-
-	.complete-sub {
-		font-size: 0.8125rem;
-		color: #999;
-		margin: 0;
-	}
 </style>

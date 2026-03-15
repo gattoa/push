@@ -226,13 +226,15 @@ See [Rest Day & Post-Workout Completion Design](./rest-day-design.md). Rest day 
 ## Workout Completion
 
 When all sets across all exercises are done:
-- Progress shows full (e.g., "9 of 9 sets")
-- A completion card appears above the exercise list with moderate stat highlight when relevant (e.g., "New PR: Squat 225 × 4")
-- Tomorrow's workout preview and week progress appear below the dimmed tiles
-- Exercise tiles remain visible but dimmed (user can undo)
+- Progress bar text changes to "Complete" (the full bar IS the completion signal)
+- Exercise tiles stay at full opacity with checkmarks — the tiles ARE the completion evidence
+- User can still undo sets (tiles remain interactive; undoing reverts progress bar)
+- No separate completion card, no tile dimming, no additional content below tiles
 - No automatic navigation away
 
-See [Rest Day & Post-Workout Completion Design](./rest-day-design.md) for full details on the completion state, shared components, and stat highlight rules.
+**Design rationale:** The trainer-text benchmark has no celebration moment — you cross off the last exercise and you're done. The tiles with checkmarks and the full progress bar are one clear signal. Additional elements (cards, previews, week summaries) are redundant or solve problems the user doesn't have.
+
+See [Rest Day & Post-Workout Completion Design](./rest-day-design.md) for stat highlight rules (future).
 
 ---
 
