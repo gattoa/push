@@ -300,10 +300,10 @@ const LEG_EXERCISES: ExerciseTemplate[] = [
 
 // PPL split patterns by training days
 const SPLIT_PATTERNS: Record<number, string[]> = {
-	3: ['Push', 'Pull', 'Legs', 'Rest', 'Rest', 'Rest', 'Review'],
-	4: ['Push', 'Pull', 'Legs', 'Rest', 'Push', 'Rest', 'Review'],
-	5: ['Push', 'Pull', 'Legs', 'Push', 'Pull', 'Rest', 'Review'],
-	6: ['Push', 'Pull', 'Legs', 'Push', 'Pull', 'Legs', 'Review']
+	3: ['Push', 'Pull', 'Legs', 'Rest', 'Rest', 'Rest', 'Rest'],
+	4: ['Push', 'Pull', 'Legs', 'Rest', 'Push', 'Rest', 'Rest'],
+	5: ['Push', 'Pull', 'Legs', 'Push', 'Pull', 'Rest', 'Rest'],
+	6: ['Push', 'Pull', 'Legs', 'Push', 'Pull', 'Legs', 'Rest']
 };
 
 function getExercisePool(label: string): ExerciseTemplate[] {
@@ -378,7 +378,6 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 	for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
 		const label = pattern[dayIdx];
 		const isRest = label === 'Rest';
-		const isReview = label === 'Review';
 		const dayId = `gen-day-${dayIdx}`;
 
 		days.push({
@@ -386,11 +385,10 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 			plan_id: 'gen-plan-1',
 			day_of_week: dayIdx,
 			label,
-			is_rest_day: isRest,
-			is_review_day: isReview
+			is_rest_day: isRest
 		});
 
-		if (isRest || isReview) continue;
+		if (isRest) continue;
 
 		// Get exercise pool, filter injuries, and pick 3
 		const count = (labelCount[label] ?? 0);

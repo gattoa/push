@@ -9,13 +9,13 @@ export const mockWeeklyPlan: WeeklyPlan = {
 };
 
 export const mockPlannedDays: PlannedDay[] = [
-	{ id: 'day-0', plan_id: 'plan-1', day_of_week: 0, label: 'Push', is_rest_day: false, is_review_day: false },
-	{ id: 'day-1', plan_id: 'plan-1', day_of_week: 1, label: 'Pull', is_rest_day: false, is_review_day: false },
-	{ id: 'day-2', plan_id: 'plan-1', day_of_week: 2, label: 'Legs', is_rest_day: false, is_review_day: false },
-	{ id: 'day-3', plan_id: 'plan-1', day_of_week: 3, label: 'Rest', is_rest_day: true, is_review_day: false },
-	{ id: 'day-4', plan_id: 'plan-1', day_of_week: 4, label: 'Push', is_rest_day: false, is_review_day: false },
-	{ id: 'day-5', plan_id: 'plan-1', day_of_week: 5, label: 'Pull', is_rest_day: false, is_review_day: false },
-	{ id: 'day-6', plan_id: 'plan-1', day_of_week: 6, label: 'Rest', is_rest_day: true, is_review_day: true }
+	{ id: 'day-0', plan_id: 'plan-1', day_of_week: 0, label: 'Push', is_rest_day: false },
+	{ id: 'day-1', plan_id: 'plan-1', day_of_week: 1, label: 'Pull', is_rest_day: false },
+	{ id: 'day-2', plan_id: 'plan-1', day_of_week: 2, label: 'Legs', is_rest_day: false },
+	{ id: 'day-3', plan_id: 'plan-1', day_of_week: 3, label: 'Rest', is_rest_day: true },
+	{ id: 'day-4', plan_id: 'plan-1', day_of_week: 4, label: 'Push', is_rest_day: false },
+	{ id: 'day-5', plan_id: 'plan-1', day_of_week: 5, label: 'Pull', is_rest_day: false },
+	{ id: 'day-6', plan_id: 'plan-1', day_of_week: 6, label: 'Rest', is_rest_day: true }
 ];
 
 export const mockPlannedExercises: PlannedExercise[] = [

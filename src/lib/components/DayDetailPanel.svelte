@@ -26,15 +26,13 @@
 <div class="detail card">
 	<div class="detail-header">
 		<span class="detail-date">{formatDate(day.date)}</span>
-		{#if !day.isRestDay && !day.isReviewDay}
+		{#if !day.isRestDay}
 			<span class="detail-label">· {day.label}</span>
 		{/if}
 	</div>
 
 	{#if day.isRestDay}
 		<p class="detail-message">Rest Day</p>
-	{:else if day.isReviewDay}
-		<p class="detail-message">Review Day</p>
 	{:else if day.exercises.length === 0}
 		<p class="detail-message">No exercises logged</p>
 	{:else}

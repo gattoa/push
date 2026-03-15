@@ -36,9 +36,8 @@ export interface PlannedDay {
 	id: string;
 	plan_id: string;
 	day_of_week: number; // 0=Mon ... 6=Sun (display order)
-	label: string; // e.g. "Push", "Pull", "Legs", "Rest", "Review"
+	label: string; // e.g. "Push", "Pull", "Legs", "Rest"
 	is_rest_day: boolean;
-	is_review_day: boolean;
 }
 
 export interface PlannedExercise {

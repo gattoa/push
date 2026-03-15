@@ -21,7 +21,6 @@ export interface DayBreakdown {
 	dayOfWeek: number;
 	label: string;
 	isRestDay: boolean;
-	isReviewDay: boolean;
 	exercisesCompleted: number;
 	exercisesTotal: number;
 }
@@ -63,7 +62,7 @@ function formatDateRange(weekStart: string): string {
 }
 
 function getTrainingDays(week: WeekHistory): PlannedDay[] {
-	return week.days.filter(d => !d.is_rest_day && !d.is_review_day);
+	return week.days.filter(d => !d.is_rest_day);
 }
 
 function isDayCompleted(day: PlannedDay, exercises: PlannedExercise[], setLogs: SetLog[]): boolean {
@@ -236,7 +235,6 @@ export function computeWeekSummary(weekIndex: number, weeks: WeekHistory[]): Wee
 				dayOfWeek: day.day_of_week,
 				label: day.label,
 				isRestDay: day.is_rest_day,
-				isReviewDay: day.is_review_day,
 				exercisesCompleted,
 				exercisesTotal
 			};
@@ -339,7 +337,6 @@ export interface CalendarDay {
 	date: string;
 	label: string;
 	isRestDay: boolean;
-	isReviewDay: boolean;
 	isCompleted: boolean;
 	exercises: DayExerciseDetail[];
 }
@@ -397,7 +394,6 @@ export function computeCalendarWeeks(weeks: WeekHistory[]): CalendarWeek[] {
 					date: computeDayDate(week.weekStart, dow),
 					label: '',
 					isRestDay: true,
-					isReviewDay: false,
 					isCompleted: false,
 					exercises: []
 				});
@@ -430,7 +426,7 @@ export function computeCalendarWeeks(weeks: WeekHistory[]): CalendarWeek[] {
 				};
 			});
 
-			const isCompleted = day.is_rest_day || day.is_review_day
+			const isCompleted = day.is_rest_day
 				? false
 				: isDayCompleted(day, week.exercises, week.setLogs);
 
@@ -439,7 +435,6 @@ export function computeCalendarWeeks(weeks: WeekHistory[]): CalendarWeek[] {
 				date: computeDayDate(week.weekStart, dow),
 				label: day.label,
 				isRestDay: day.is_rest_day,
-				isReviewDay: day.is_review_day,
 				isCompleted,
 				exercises
 			});
@@ -589,7 +584,7 @@ export interface WeekMomentum {
 	bodyPartExercises: Map<string, BodyPartExerciseDetail[]>; // per-exercise detail for sheet
 	bodyPartsScheduled: Map<string, BodyPartScheduledDetail[]>; // from future incomplete days
 	unmappedExercises: string[];
-	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; bodyParts: string[]; volume: number; isRestDay: boolean; isReviewDay: boolean; exerciseNames: string[] }[];
+	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; bodyParts: string[]; volume: number; isRestDay: boolean; exerciseNames: string[] }[];
 	streak: number;
 	weekPRs: PersonalRecord[];
 }
@@ -611,7 +606,7 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 		.sort((a, b) => a.day_of_week - b.day_of_week)
 		.map(day => {
 			const dayExercises = currentWeek.exercises.filter(e => e.planned_day_id === day.id);
-			const isCompleted = !day.is_rest_day && !day.is_review_day &&
+			const isCompleted = !day.is_rest_day &&
 				isDayCompleted(day, currentWeek.exercises, currentWeek.setLogs);
 
 			const dayBodyParts: Set<string> = new Set();
@@ -620,7 +615,7 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 			// Track all body parts in the plan (for total count)
 			for (const ex of dayExercises) {
 				for (const bp of ex.body_parts) allBodyParts.add(bp);
-				if (ex.body_parts.length === 0 && !day.is_rest_day && !day.is_review_day) {
+				if (ex.body_parts.length === 0 && !day.is_rest_day) {
 					unmappedSet.add(ex.exercise_name);
 				}
 			}
@@ -650,7 +645,7 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 						});
 					}
 				}
-			} else if (!day.is_rest_day && !day.is_review_day && todayIndex !== undefined && day.day_of_week > todayIndex) {
+			} else if (!day.is_rest_day && todayIndex !== undefined && day.day_of_week > todayIndex) {
 				// Future incomplete training day — track as scheduled
 				for (const ex of dayExercises) {
 					for (const bp of ex.body_parts) {
@@ -671,7 +666,6 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 				bodyParts: Array.from(dayBodyParts),
 				volume,
 				isRestDay: day.is_rest_day,
-				isReviewDay: day.is_review_day,
 				exerciseNames: dayExercises.sort((a, b) => a.order - b.order).map(e => e.exercise_name)
 			};
 		});
@@ -712,7 +706,7 @@ export function getLastCompletedSession(weeks: WeekHistory[]): LastSessionData |
 	for (let wi = weeks.length - 1; wi >= 0; wi--) {
 		const week = weeks[wi];
 		const trainingDays = week.days
-			.filter(d => !d.is_rest_day && !d.is_review_day)
+			.filter(d => !d.is_rest_day)
 			.sort((a, b) => b.day_of_week - a.day_of_week); // Reverse order (most recent first)
 
 		for (const day of trainingDays) {

@@ -43,8 +43,6 @@
 				>
 					{#if day.isRestDay}
 						<span class="indicator rest">·</span>
-					{:else if day.isReviewDay}
-						<span class="indicator review">R</span>
 					{:else if day.isCompleted}
 						<span class="indicator completed">●</span>
 					{:else if day.exercises.length > 0}
@@ -131,9 +129,4 @@
 		font-size: 1.25rem;
 	}
 
-	.indicator.review {
-		color: #ccc;
-		font-size: 0.6875rem;
-		font-weight: 600;
-	}
 </style>

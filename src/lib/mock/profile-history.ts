@@ -111,13 +111,13 @@ function generateWeek(weekNum: number, weekStart: string): WeekHistory {
 	const completedDays = COMPLETED_DAYS[weekNum - 1] ?? [];
 
 	const days: PlannedDay[] = [
-		{ id: `${prefix}-day-0`, plan_id: planId, day_of_week: 0, label: 'Push', is_rest_day: false, is_review_day: false },
-		{ id: `${prefix}-day-1`, plan_id: planId, day_of_week: 1, label: 'Pull', is_rest_day: false, is_review_day: false },
-		{ id: `${prefix}-day-2`, plan_id: planId, day_of_week: 2, label: 'Legs', is_rest_day: false, is_review_day: false },
-		{ id: `${prefix}-day-3`, plan_id: planId, day_of_week: 3, label: 'Rest', is_rest_day: true, is_review_day: false },
-		{ id: `${prefix}-day-4`, plan_id: planId, day_of_week: 4, label: 'Push', is_rest_day: false, is_review_day: false },
-		{ id: `${prefix}-day-5`, plan_id: planId, day_of_week: 5, label: 'Pull', is_rest_day: false, is_review_day: false },
-		{ id: `${prefix}-day-6`, plan_id: planId, day_of_week: 6, label: 'Review', is_rest_day: false, is_review_day: true }
+		{ id: `${prefix}-day-0`, plan_id: planId, day_of_week: 0, label: 'Push', is_rest_day: false },
+		{ id: `${prefix}-day-1`, plan_id: planId, day_of_week: 1, label: 'Pull', is_rest_day: false },
+		{ id: `${prefix}-day-2`, plan_id: planId, day_of_week: 2, label: 'Legs', is_rest_day: false },
+		{ id: `${prefix}-day-3`, plan_id: planId, day_of_week: 3, label: 'Rest', is_rest_day: true },
+		{ id: `${prefix}-day-4`, plan_id: planId, day_of_week: 4, label: 'Push', is_rest_day: false },
+		{ id: `${prefix}-day-5`, plan_id: planId, day_of_week: 5, label: 'Pull', is_rest_day: false },
+		{ id: `${prefix}-day-6`, plan_id: planId, day_of_week: 6, label: 'Rest', is_rest_day: true }
 	];
 
 	const exercises: PlannedExercise[] = [];

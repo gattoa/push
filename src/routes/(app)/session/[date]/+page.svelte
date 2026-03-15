@@ -87,10 +87,10 @@
 	{#if dayData}
 		<div class="session-header">
 			<p class="session-date">{formatDate(dateParam)}</p>
-			{#if !dayData.isRestDay && !dayData.isReviewDay}
+			{#if !dayData.isRestDay}
 				<h1>{dayData.label}</h1>
 			{:else}
-				<h1>{dayData.isRestDay ? 'Rest Day' : 'Review Day'}</h1>
+				<h1>Rest Day</h1>
 			{/if}
 		</div>
 
@@ -144,10 +144,6 @@
 		{:else if dayData.isRestDay}
 			<div class="card empty-state">
 				<p>Rest day — no exercises scheduled.</p>
-			</div>
-		{:else if dayData.isReviewDay}
-			<div class="card empty-state">
-				<p>Review day — time to reflect on the week.</p>
 			</div>
 		{/if}
 

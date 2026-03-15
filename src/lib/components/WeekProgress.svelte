@@ -13,7 +13,6 @@
 	const previousWeek = $derived(weeks.length >= 2 ? weeks[weeks.findIndex(w => w.isCurrent) - 1] ?? null : null);
 
 	function indicator(day: CalendarDay): string {
-		if (day.isReviewDay) return 'R';
 		if (day.isRestDay) return '·';
 		if (day.isCompleted) return '●';
 		return '○';
@@ -59,8 +58,7 @@
 					class:selected={isSelected(day)}
 					class:completed={day.isCompleted}
 					class:rest={day.isRestDay}
-					class:review={day.isReviewDay}
-					onclick={() => handleDayClick(day)}
+						onclick={() => handleDayClick(day)}
 				>
 					<span class="indicator">{indicator(day)}</span>
 				</button>
@@ -83,8 +81,7 @@
 						class:selected={isSelected(day)}
 						class:completed={day.isCompleted}
 						class:rest={day.isRestDay}
-						class:review={day.isReviewDay}
-						onclick={() => handleDayClick(day)}
+								onclick={() => handleDayClick(day)}
 					>
 						<span class="indicator">{indicator(day)}</span>
 					</button>
@@ -174,8 +171,7 @@
 		color: #000;
 	}
 
-	.day-cell.rest .indicator,
-	.day-cell.review .indicator {
+	.day-cell.rest .indicator {
 		font-size: 0.75rem;
 		color: #ccc;
 	}

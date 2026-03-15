@@ -59,8 +59,6 @@
 						<svg class="tile-icon" width="10" height="10" viewBox="0 0 16 16" fill="none">
 							<polyline points="3,8 6.5,11.5 13,4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
 						</svg>
-					{:else if day.isReviewDay}
-						<span class="review-pill">R</span>
 					{:else if state === 'rest'}
 						<svg class="tile-icon" width="12" height="2" viewBox="0 0 12 2">
 							<line x1="0" y1="1" x2="12" y2="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -159,18 +157,6 @@
 
 	.tile-icon {
 		color: #000;
-	}
-
-	/* Review pill — "R" on a filled oval */
-	.review-pill {
-		font-size: 0.5rem;
-		font-weight: 700;
-		color: #fff;
-		background: #000;
-		padding: 0.0625rem 0.3125rem;
-		border-radius: 100px;
-		line-height: 1.3;
-		letter-spacing: 0.02em;
 	}
 
 	/* === Tile states === */

@@ -12,7 +12,7 @@
 
 <h2>Weekly Review</h2>
 
-{#each allDays.filter(d => !d.is_rest_day && !d.is_review_day) as day (day.id)}
+{#each allDays.filter(d => !d.is_rest_day) as day (day.id)}
 	{@const dayExercises = allExercises.filter(e => e.planned_day_id === day.id)}
 	{@const daySets = allSetLogs.filter(s => dayExercises.some(e => e.id === s.planned_exercise_id))}
 	{@const completedSets = daySets.filter(s => s.completed).length}
