@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
 	import ExerciseTile from './ExerciseTile.svelte';
+	import { today as copy } from '$lib/copy';
 
 	let { plannedDay, exercises, plannedSets, setLogs, onSetComplete, nextSession }: {
 		plannedDay: PlannedDay;
@@ -28,16 +29,11 @@
 	const sorted = $derived(exercises.toSorted((a, b) => a.order - b.order));
 </script>
 
-{#if plannedDay.is_review_day}
-	<!-- Review day design is out of scope — placeholder only -->
-	<div class="placeholder-card">
-		<p>Review Day</p>
-	</div>
-{:else if plannedDay.is_rest_day}
+{#if plannedDay.is_rest_day}
 	{#if nextSession}
 		<div class="next-session">
 			<span class="next-session-header">
-				{DAY_NAMES[nextSession.day.day_of_week]} · {nextSession.day.label}
+				{copy.restDay.nextSessionLabel(DAY_NAMES[nextSession.day.day_of_week], nextSession.day.label)}
 			</span>
 			<ul class="next-session-exercises">
 				{#each nextSession.exercises.toSorted((a, b) => a.order - b.order) as exercise}
@@ -48,6 +44,8 @@
 				{/each}
 			</ul>
 		</div>
+	{:else}
+		<p class="week-done">{copy.weekComplete}</p>
 	{/if}
 {:else}
 	<div class="exercise-list">
@@ -151,18 +149,12 @@
 		font-weight: 500;
 	}
 
-	.placeholder-card {
-		background: #fff;
-		border: 1px solid #e8e8e8;
-		border-radius: 14px;
-		padding: 2rem 1rem;
-		text-align: center;
-	}
-
-	.placeholder-card p {
+	.week-done {
 		color: #999;
 		font-size: 0.9375rem;
-		margin: 0;
+		font-weight: 500;
+		text-align: center;
+		margin: 1rem 0 0;
 	}
 
 </style>

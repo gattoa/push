@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { savePhoto } from '$lib/stores/photos';
+	import { savePhoto, type ProgressPhoto } from '$lib/stores/photos';
 
 	let { onupload }: {
-		onupload?: () => void;
+		onupload?: (photo: ProgressPhoto) => void;
 	} = $props();
 
 	let fileInput: HTMLInputElement;
@@ -14,8 +14,8 @@
 
 		uploading = true;
 		try {
-			await savePhoto(files[0]);
-			onupload?.();
+			const photo = await savePhoto(files[0]);
+			onupload?.(photo);
 		} catch (e) {
 			console.error('Photo upload failed:', e);
 		} finally {

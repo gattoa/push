@@ -24,16 +24,20 @@ Full TypeScript types defined in `src/lib/types/index.ts`:
 - Thu: Rest
 - Fri: Push (Incline DB Press, Lateral Raises, Dips)
 - Sat: Pull (Lat Pulldown, Seated Cable Row, Hammer Curls)
-- Sun: Review
+- Sun: Rest (check-in day)
 
 ### Components
 | Component | Purpose |
 |-----------|---------|
-| `DailyWorkout` | Renders workout/rest/review day |
+| `DailyWorkout` | Renders workout or rest day content |
 | `ExerciseTile` | Exercise with set checkboxes |
 | `SetRow` | Detailed set logging (weight, reps, complete toggle) |
 | `SetCheckbox` | Quick set toggle |
 | `QuickComplete` | Batch-complete all sets |
+| `DropSetColumn` | Drop set display with stacks + arrows |
+| `CheckInCard` | Progress photo upload card (end-of-week) |
+| `PhotoUpload` | Camera/file input for photos |
+| `PhotoViewer` | Full-screen photo overlay |
 | `ReviewSummary` | Weekly completion summary |
 | `WeekStrip` | Day selector navigation |
 | `ExerciseCard` | Exercise name + muscle group link |
@@ -59,7 +63,7 @@ Build every remaining screen from the product brief using mock data:
 
 - [ ] **Onboarding flow** — 4 screens: experience level, training days/week, goals, injuries. Mock output as a generated plan.
 - [ ] **Exercise swaps UI** — tap/swipe on exercise tile → 3 alternatives from ExerciseDB by target muscle
-- [ ] **Review Day page** — weekly summary, achievements, "Start Next Week" transition
+- [x] **Check-in & activity model** — replaced "Review Day" with independent activity overlays: check-in (photo upload after last workout), assignment (deferred to AI milestone). See [today-design.md](./today-design.md)
 - [x] **Navigation restructure** — icon-driven nav (gear | date | avatar)
 - [ ] **Week plan view** — this week's 7-day schedule view with day shuffle capability, accessible from Today page
 - [x] **Profile page** — historical calendar (date-indexed archive), lifetime stats, PRs, progress photos
@@ -87,7 +91,7 @@ Polish the daily workout experience based on what Milestones 1-2 reveal:
 
 - [ ] PR detection logic (Epley formula: `1RM = weight * (1 + reps/30)`)
 - [ ] Deload detection (1RM trend stall over 2+ weeks)
-- [ ] Review Day AI narrative (Claude summarizes week, previews next)
+- [ ] Assignment AI narrative (Claude summarizes week, delivers next week's plan with trainer message)
 - [ ] Quick-complete auto-fill with "previous performance" data
 - [ ] Finalize all TypeScript types based on actual screen needs
 

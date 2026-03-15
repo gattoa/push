@@ -109,6 +109,14 @@ export interface OnboardingData {
 	injuries: InjuryArea[]; // empty = no injuries
 }
 
+// === Check-in ===
+
+export interface CheckInState {
+	weekPlanId: string;
+	photoIds: string[];         // photos uploaded during this check-in
+	completedAt: string | null; // null = pending (window closes when new week starts)
+}
+
 // === App Preferences ===
 
 export type WeightUnit = 'lbs' | 'kg';

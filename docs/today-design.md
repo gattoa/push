@@ -6,7 +6,7 @@
 |-------|-------|
 | **Page** | Today (`/`) |
 | **Status** | Design |
-| **Traces to** | [Product Brief](./product-brief.md) — Daily Workout, In-Gym Logging, Equipment Swaps, Historical Data, Review Day |
+| **Traces to** | [Product Brief](./product-brief.md) — Daily Workout, In-Gym Logging, Equipment Swaps, Historical Data, Check-in, Assignment |
 | **Research refs** | [[ISSUE-6-F004]] 2-3 tap quick-complete, [[ISSUE-6-F005]] no app solves dual-path logging, [[ISSUE-6-I003]] contextual AI swap, [[ISSUE-6-F014]] gym accessibility |
 
 ---
@@ -213,10 +213,26 @@ Open app → See workout → Tap set column → Set logged
 ```
 
 ### Rest Day
-See [Rest Day & Post-Workout Completion Design](./rest-day-design.md). Rest day shows recovery context, tomorrow's workout preview, and week progress.
+See [Rest Day & Post-Workout Completion Design](./rest-day-design.md). Rest day shows the next training session's exercises below the header.
 
-### Review Day (Overlay)
-*Separate design doc needed.* Review is a task overlaid on a day, not a day type (see [product brief](./product-brief.md) and [review day model memory](../.claude/projects/-Users-andrewgatto-Documents-GitHub-MYOA-push/memory/project_review_day_model.md)). Needs design for: ingress on Today, review content, "Start Next Week" transition. No competitive precedent — core differentiator per research [[ISSUE-6-I009]].
+### Activity Overlays (Check-in & Assignment)
+
+The old "Review Day" concept has been decomposed into four independent activity types:
+
+1. **Workout** — user sees exercises and logs sets
+2. **Rest** — no workout scheduled
+3. **Check-in** — user uploads progress photos (optional). Appears as a card on the Today page above the day's base content. Photos are supplementary data for the AI trainer — never a gate for plan generation.
+4. **Assignment** — trainer delivers next week's plan (deferred — the new plan activates silently, and the Plan page handles visibility). Trainer message with itinerary, progress notes, and encouragement will be added when real AI exists.
+
+A day's label always reflects its workout status ("Push", "Pull", "Rest"), never "Review." Activities overlay on the day as cards — the day's base content (workout tiles or rest preview) is unchanged.
+
+#### Check-in Trigger
+
+The check-in card appears after the user completes their last scheduled workout of the week — not on a configured day. It persists across app opens until the new week's plan activates. There is no "Skip" button; the non-action is the skip. If the user never uploads photos before the new week starts, the check-in window simply closes. The LLM generates the next week's plan from performance data regardless.
+
+**Design rationale:** The user finishes their last set in the gym but won't take progress photos there — they'll do it at home, in a locker room, whenever they're comfortable. The card needs to be passive, not urgent. It's there when they're ready. The copy ("Optional snapshot for your trainer") communicates zero pressure.
+
+Check-in and assignment are independent — they don't need to be connected in the UI. The user uploads photos and leaves. The plan generates asynchronously. No competitive precedent for this model — core differentiator per research [[ISSUE-6-I009]].
 
 ### Rest Timer
 *Separate design doc needed.* Interaction between rest timer and set completion needs its own design thinking.
@@ -250,54 +266,38 @@ Initiated from the exercise tile (gesture or button TBD — swipe or tap icon). 
 
 ## Data Model
 
-### Current (Simple Sets)
+### Current (Implemented)
 
 ```typescript
 PlannedSet: {
   id: string;
   planned_exercise_id: string;
   set_number: number;
+  set_type?: 'standard' | 'drop' | 'warmup';
   target_reps: number;
   target_weight: number | null; // null = bodyweight
-}
-```
-
-### Current Additions (Building Now)
-
-```typescript
-PlannedExercise: {
-  ...existing fields,
-  equipments: string[];  // denormalized from ExerciseDB (e.g., ["dumbbell"])
-  cue?: string;          // AI-prescribed modification (e.g., "slow eccentric", "neutral grip")
-}
-```
-
-### Future (Complex Sets)
-
-```typescript
-PlannedSet: {
-  id: string;
-  planned_exercise_id: string;
-  set_number: number;
-  set_type: 'standard' | 'drop' | 'warmup';
-  target_reps: number;
-  target_weight: number | null;
   drops?: { target_reps: number; target_weight: number | null }[];
 }
 
 PlannedExercise: {
   ...existing fields,
+  equipments: string[];    // denormalized from ExerciseDB
+  cue?: string;            // AI-prescribed modification
   superset_group?: string; // exercises sharing a group ID are supersetted
-  superset_order?: number; // order within the superset
+  order: number;
 }
 
 SetLog: {
   ...existing fields,
   drop_logs?: { actual_reps: number | null; actual_weight: number | null }[];
 }
-```
 
-**Implementation approach:** Build with the current simple model plus equipment/cue fields. The columnar layout handles drop sets (multi-value columns) and supersets (grouped tiles) without structural changes to the component hierarchy.
+CheckInState: {
+  weekPlanId: string;
+  photoIds: string[];
+  completedAt: string | null; // window closes when new week starts
+}
+```
 
 ---
 

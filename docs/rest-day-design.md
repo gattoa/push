@@ -38,11 +38,14 @@ The user just finished. The tiles with checkmarks on every set ARE the completio
 
 ### Rest Day (no prescribed workout)
 
-The header shows the date + "Rest Day." Below it, a simple placeholder card confirms there's no workout.
+The header shows the date + "Rest." Below it:
+
+**Mid-week rest day** (training days still ahead): Shows the next training session's exercises — exercise names with body parts. Concrete and scannable. Lets the user know what equipment they'll need and mentally prepare.
+
+**End-of-week rest day** (all training days complete): Shows "You're done for the week." If the check-in window is open (all training days completed, new week hasn't started), the check-in card appears above this message. See [today-design.md](./today-design.md) for check-in details.
 
 **What doesn't appear:**
 - No recovery context cards — the user knows what they trained
-- No tomorrow preview — the user can check the plan page
 - No wellness check-in — this is a workout tracker, not a wellness app
 - No engagement hooks — there's no reason to spend time in the app on a rest day, and that's fine
 
