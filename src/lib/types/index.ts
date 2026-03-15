@@ -49,15 +49,23 @@ export interface PlannedExercise {
 	body_parts: string[]; // denormalized from ExerciseDB
 	equipments: string[]; // denormalized from ExerciseDB (e.g., ["dumbbell", "bench"])
 	cue?: string; // AI-prescribed modification (e.g., "slow eccentric", "neutral grip")
+	superset_group?: string; // exercises sharing a group ID are supersetted
 	order: number;
+}
+
+export interface DropTarget {
+	target_reps: number;
+	target_weight: number | null;
 }
 
 export interface PlannedSet {
 	id: string;
 	planned_exercise_id: string;
 	set_number: number;
+	set_type?: 'standard' | 'drop' | 'warmup'; // default: standard
 	target_reps: number;
 	target_weight: number | null; // null = bodyweight
+	drops?: DropTarget[]; // only for set_type: 'drop'
 }
 
 export interface WorkoutLog {
@@ -66,6 +74,11 @@ export interface WorkoutLog {
 	planned_day_id: string;
 	date: string;
 	completed_at: string | null;
+}
+
+export interface DropLog {
+	actual_reps: number | null;
+	actual_weight: number | null;
 }
 
 export interface SetLog {
@@ -77,6 +90,7 @@ export interface SetLog {
 	actual_reps: number | null;
 	actual_weight: number | null;
 	completed: boolean;
+	drop_logs?: DropLog[]; // only for drop sets
 }
 
 // === Onboarding ===

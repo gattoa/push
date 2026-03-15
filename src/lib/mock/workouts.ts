@@ -39,8 +39,8 @@ export const mockPlannedExercises: PlannedExercise[] = [
 
 	// Friday - Push
 	{ id: 'ex-4-0', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hsVHu7B1MTdr', exercise_name: 'Palms In Incline Bench Press', body_parts: ['UPPER ARMS'], equipments: ['dumbbell', 'bench'], cue: 'neutral grip', order: 0 },
-	{ id: 'ex-4-1', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hjuGpcex14w7', exercise_name: 'Lateral Raise', body_parts: ['SHOULDERS'], equipments: ['dumbbell'], order: 1 },
-	{ id: 'ex-4-2', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hkK8hGAcSnW7', exercise_name: 'Chest Dip', body_parts: ['CHEST'], equipments: ['body weight'], order: 2 },
+	{ id: 'ex-4-1', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hjuGpcex14w7', exercise_name: 'Lateral Raise', body_parts: ['SHOULDERS'], equipments: ['dumbbell'], superset_group: 'ss-4-1', order: 1 },
+	{ id: 'ex-4-2', planned_day_id: 'day-4', exercisedb_id: 'exr_41n2hkK8hGAcSnW7', exercise_name: 'Chest Dip', body_parts: ['CHEST'], equipments: ['body weight'], superset_group: 'ss-4-1', order: 2 },
 
 	// Saturday - Pull
 	{ id: 'ex-5-0', planned_day_id: 'day-5', exercisedb_id: 'exr_41n2hadPLLFRGvFk', exercise_name: 'Sliding Floor Pulldown on Towel', body_parts: ['BACK'], equipments: ['towel'], order: 0 },
@@ -49,10 +49,12 @@ export const mockPlannedExercises: PlannedExercise[] = [
 ];
 
 export const mockPlannedSets: PlannedSet[] = [
-	// Monday - Bench Press: pyramid
+	// Monday - Bench Press: 3 standard + 2 drop sets (mirrors text benchmark)
 	{ id: 'ps-0-0-1', planned_exercise_id: 'ex-0-0', set_number: 1, target_reps: 10, target_weight: 135 },
 	{ id: 'ps-0-0-2', planned_exercise_id: 'ex-0-0', set_number: 2, target_reps: 8, target_weight: 155 },
 	{ id: 'ps-0-0-3', planned_exercise_id: 'ex-0-0', set_number: 3, target_reps: 6, target_weight: 175 },
+	{ id: 'ps-0-0-4', planned_exercise_id: 'ex-0-0', set_number: 4, set_type: 'drop', target_reps: 12, target_weight: 135, drops: [{ target_reps: 12, target_weight: 115 }] },
+	{ id: 'ps-0-0-5', planned_exercise_id: 'ex-0-0', set_number: 5, set_type: 'drop', target_reps: 10, target_weight: 115, drops: [{ target_reps: 10, target_weight: 95 }, { target_reps: 10, target_weight: 75 }] },
 	// Monday - Shoulder Press: ascending weight
 	{ id: 'ps-0-1-1', planned_exercise_id: 'ex-0-1', set_number: 1, target_reps: 10, target_weight: 55 },
 	{ id: 'ps-0-1-2', planned_exercise_id: 'ex-0-1', set_number: 2, target_reps: 8, target_weight: 65 },
@@ -132,7 +134,8 @@ function generateSetLogs(): SetLog[] {
 			set_number: ps.set_number,
 			actual_reps: null,
 			actual_weight: null,
-			completed: false
+			completed: false,
+			...(ps.drops ? { drop_logs: ps.drops.map(() => ({ actual_reps: null, actual_weight: null })) } : {})
 		});
 	}
 

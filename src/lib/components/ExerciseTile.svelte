@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PlannedExercise, PlannedSet, SetLog } from '$lib/types';
 	import SetCheckbox from './SetCheckbox.svelte';
+	import DropSetColumn from './DropSetColumn.svelte';
 
 	let { exercise, plannedSets, setLogs, isActive = false, onSetComplete }: {
 		exercise: PlannedExercise;
@@ -40,7 +41,11 @@
 		{#each plannedSets as ps (ps.id)}
 			{@const log = setLogs.find(s => s.planned_set_id === ps.id)}
 			{#if log}
-				<SetCheckbox plannedSet={ps} setLog={log} onComplete={onSetComplete} />
+				{#if ps.set_type === 'drop'}
+					<DropSetColumn plannedSet={ps} setLog={log} onComplete={onSetComplete} />
+				{:else}
+					<SetCheckbox plannedSet={ps} setLog={log} onComplete={onSetComplete} />
+				{/if}
 			{/if}
 		{/each}
 	</div>
@@ -115,5 +120,6 @@
 		display: flex;
 		gap: 0.25rem;
 		margin-top: 0.25rem;
+		flex-wrap: wrap;
 	}
 </style>

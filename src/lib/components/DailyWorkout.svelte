@@ -39,9 +39,21 @@
 	{/if}
 
 	<div class="exercise-list" class:dimmed={allDone}>
-		{#each sorted as exercise (exercise.id)}
+		{#each sorted as exercise, i (exercise.id)}
 			{@const exPlannedSets = plannedSets.filter(s => s.planned_exercise_id === exercise.id)}
 			{@const exSetLogs = setLogs.filter(s => s.planned_exercise_id === exercise.id)}
+			{@const prevExercise = i > 0 ? sorted[i - 1] : null}
+			{@const isStartOfSuperset = exercise.superset_group && (!prevExercise || prevExercise.superset_group !== exercise.superset_group)}
+			{@const isContinuationOfSuperset = exercise.superset_group && prevExercise?.superset_group === exercise.superset_group}
+
+			{#if isContinuationOfSuperset}
+				<div class="superset-connector">
+					<div class="connector-line"></div>
+					<span class="connector-label">superset</span>
+					<div class="connector-line"></div>
+				</div>
+			{/if}
+
 			<ExerciseTile
 				{exercise}
 				plannedSets={exPlannedSets}
@@ -62,6 +74,32 @@
 
 	.exercise-list.dimmed {
 		opacity: 0.6;
+	}
+
+	.superset-connector {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin: -0.375rem 0;
+		z-index: 1;
+	}
+
+	.connector-line {
+		width: 1px;
+		height: 0.5rem;
+		background: #ccc;
+	}
+
+	.connector-label {
+		font-size: 0.5625rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #bbb;
+		background: #f5f5f7;
+		padding: 0.125rem 0.5rem;
+		border-radius: 100px;
+		white-space: nowrap;
 	}
 
 	.placeholder-card {

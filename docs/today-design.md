@@ -132,14 +132,24 @@ chest
 ```
 Each drop is a reps/weight stack (same as standard sets), with a single `→` vertically centered between stacks. The drop group sits inside a rounded container with a "drop" label integrated into the border, visually distinguishing it from standard set columns. The entire container is one tappable element — one tap completes the whole drop set.
 
-**Supersets (future — design only):**
+**Supersets:**
+Supersetted exercises remain as independent tiles — each with its own name, sets, and completion state. A vertical connector between them communicates "do these back-to-back":
 ```
-┌ Lateral Raise · shoulders
-│  15    12    12          Rear Delt Fly · shoulders
-│  15    15    15          15    12    12
-│                          15    15    15
+┌──────────────────────────────┐
+│ Lateral Raise · shoulders    │
+│  15    12    12               │
+│  15    15    20               │
+└──────────────────────────────┘
+               |
+          ○ superset
+               |
+┌──────────────────────────────┐
+│ Chest Dip · chest            │
+│  12    10     8              │
+│  BW    BW    BW              │
+└──────────────────────────────┘
 ```
-Exact superset display TBD (see Open Questions).
+The connector is a vertical line with a small pill label ("superset") centered between the tiles, with negative margin pulling them closer together. Each exercise is tapped independently — the connector is purely informational. Data model: exercises in a superset share a `superset_group` ID on `PlannedExercise`.
 
 ### Interaction on a Set Column
 
@@ -295,7 +305,7 @@ SetLog: {
 ## Open Questions
 
 1. **Swap gesture:** Swipe on tile vs. dedicated swap button/icon? Swipe is discoverable for mobile users but invisible. Button is explicit but adds visual noise.
-2. **Superset display:** Should paired exercises share a single card or remain separate cards with a visual connector?
+2. ~~**Superset display:**~~ **Resolved:** Separate tiles with a vertical connector (line + pill label) between them. Each exercise keeps its own tile and completion state.
 3. ~~**Drop set completion:**~~ **Resolved:** One tap completes the whole drop set. The container treatment (rounded border + "drop" label) makes it visually clear that the group is one unit = one action.
 4. **PR indicator on Today:** When the user logs a weight/rep combo that exceeds their previous best, should a PR badge appear immediately on the set chip?
 
