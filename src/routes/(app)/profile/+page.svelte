@@ -12,6 +12,7 @@
 		MUSCLE_GROUPS,
 		type MuscleGroup
 	} from '$lib/mock/profile';
+	import WeekCard from '$lib/components/WeekCard.svelte';
 
 	let accountSheetOpen = $state(false);
 	let email = $state('');
@@ -78,14 +79,6 @@
 	const momentum = $derived(computeWeekMomentum(mockWeekHistories));
 	const streakData = $derived(computeStreak(mockWeekHistories));
 	const avatarInitial = $derived(email ? email[0].toUpperCase() : 'P');
-	const weekProgress = $derived(
-		momentum.workoutsTotal > 0
-			? Math.round((momentum.workoutsCompleted / momentum.workoutsTotal) * 100)
-			: 0
-	);
-
-	const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
 	function muscleHitLevel(muscle: MuscleGroup): 'none' | 'hit' | 'heavy' {
 		const sets = momentum.musclesHit.get(muscle) ?? 0;
 		if (sets === 0) return 'none';
@@ -200,45 +193,7 @@
 	</div>
 
 	<!-- This Week — the momentum centerpiece -->
-	<div class="week-card card">
-		<div class="week-header">
-			<span class="week-title">This Week</span>
-			<span class="week-fraction">{momentum.workoutsCompleted}/{momentum.workoutsTotal}</span>
-		</div>
-
-		<!-- Progress bar -->
-		<div class="progress-track">
-			<div class="progress-fill" style="width: {weekProgress}%"></div>
-		</div>
-
-		<!-- Day dots — the week filling in -->
-		<div class="day-dots">
-			{#each momentum.dayCompletions as day, i}
-				<div class="day-dot-col">
-					<span class="day-dot-label">{DAY_LABELS[i]}</span>
-					<div
-						class="day-dot"
-						class:completed={day.completed}
-						class:rest={day.label === 'Rest'}
-						class:review={day.label === 'Review'}
-					>
-						{#if day.completed}
-							<svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-								<polyline points="3,8 6.5,11.5 13,4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-							</svg>
-						{:else if day.label === 'Rest'}
-							<span class="dot-rest">·</span>
-						{:else if day.label === 'Review'}
-							<span class="dot-review">R</span>
-						{/if}
-					</div>
-					{#if day.completed && day.muscles.length > 0}
-						<span class="day-muscle-label">{day.label}</span>
-					{/if}
-				</div>
-			{/each}
-		</div>
-	</div>
+	<WeekCard {momentum} />
 
 	<!-- Muscles trained — body coverage filling in -->
 	<div class="group">
@@ -428,116 +383,6 @@
 		font-weight: 500;
 		color: #999;
 		padding: 0.125rem 0;
-	}
-
-	/* Card base */
-	.card {
-		background: #fff;
-		border: 1px solid #e8e8e8;
-		border-radius: 12px;
-		overflow: hidden;
-	}
-
-	/* Week Card — the momentum centerpiece */
-	.week-card {
-		padding: 1rem;
-	}
-
-	.week-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 0.75rem;
-	}
-
-	.week-title {
-		font-size: 0.9375rem;
-		font-weight: 700;
-		color: #000;
-	}
-
-	.week-fraction {
-		font-size: 0.875rem;
-		font-weight: 700;
-		color: #000;
-	}
-
-	/* Progress bar */
-	.progress-track {
-		height: 6px;
-		background: #f0f0f0;
-		border-radius: 3px;
-		overflow: hidden;
-		margin-bottom: 1rem;
-	}
-
-	.progress-fill {
-		height: 100%;
-		background: #000;
-		border-radius: 3px;
-		transition: width 0.3s ease;
-	}
-
-	/* Day dots */
-	.day-dots {
-		display: flex;
-		justify-content: space-between;
-	}
-
-	.day-dot-col {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.25rem;
-		flex: 1;
-	}
-
-	.day-dot-label {
-		font-size: 0.6875rem;
-		font-weight: 600;
-		color: #bbb;
-	}
-
-	.day-dot {
-		width: 32px;
-		height: 32px;
-		border-radius: 50%;
-		border: 2px solid #e8e8e8;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #ccc;
-		font-size: 0.75rem;
-	}
-
-	.day-dot.completed {
-		background: #000;
-		border-color: #000;
-		color: #fff;
-	}
-
-	.day-dot.rest,
-	.day-dot.review {
-		border-color: #f0f0f0;
-	}
-
-	.dot-rest {
-		font-size: 1.25rem;
-		line-height: 1;
-		color: #ddd;
-	}
-
-	.dot-review {
-		font-size: 0.625rem;
-		font-weight: 700;
-		color: #ccc;
-	}
-
-	.day-muscle-label {
-		font-size: 0.5625rem;
-		color: #999;
-		font-weight: 500;
-		text-align: center;
 	}
 
 	/* Groups */

@@ -585,12 +585,13 @@ export function getMusclesForExercise(exerciseName: string): MuscleGroup[] {
 // === Weekly Momentum ===
 
 export interface WeekMomentum {
+	weekStart: string;
 	workoutsCompleted: number;
 	workoutsTotal: number;
 	musclesHit: Map<MuscleGroup, number>; // muscle → number of sets
 	totalMuscleGroups: number;
 	muscleGroupsHit: number;
-	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; muscles: MuscleGroup[] }[];
+	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; muscles: MuscleGroup[]; volume: number; isRestDay: boolean; isReviewDay: boolean; exerciseNames: string[] }[];
 	streak: number;
 	weekPRs: PersonalRecord[];
 }
@@ -613,17 +614,24 @@ export function computeWeekMomentum(weeks: WeekHistory[]): WeekMomentum {
 				isDayCompleted(day, currentWeek.exercises, currentWeek.setLogs);
 
 			const dayMuscles: Set<MuscleGroup> = new Set();
+			let volume = 0;
 
 			if (isCompleted) {
 				for (const ex of dayExercises) {
 					const muscles = getMusclesForExercise(ex.exercise_name);
-					const completedSets = currentWeek.setLogs.filter(
+					const exSetLogs = currentWeek.setLogs.filter(
 						s => s.planned_exercise_id === ex.id && s.completed
-					).length;
+					);
+
+					for (const s of exSetLogs) {
+						if (s.actual_weight !== null && s.actual_reps !== null) {
+							volume += s.actual_weight * s.actual_reps;
+						}
+					}
 
 					for (const m of muscles) {
 						dayMuscles.add(m);
-						musclesHit.set(m, (musclesHit.get(m) ?? 0) + completedSets);
+						musclesHit.set(m, (musclesHit.get(m) ?? 0) + exSetLogs.length);
 					}
 				}
 			}
@@ -632,11 +640,16 @@ export function computeWeekMomentum(weeks: WeekHistory[]): WeekMomentum {
 				dayOfWeek: day.day_of_week,
 				label: day.label,
 				completed: isCompleted,
-				muscles: Array.from(dayMuscles)
+				muscles: Array.from(dayMuscles),
+				volume,
+				isRestDay: day.is_rest_day,
+				isReviewDay: day.is_review_day,
+				exerciseNames: dayExercises.sort((a, b) => a.order - b.order).map(e => e.exercise_name)
 			};
 		});
 
 	return {
+		weekStart: currentWeek.weekStart,
 		workoutsCompleted: stats.workoutsCompleted,
 		workoutsTotal: stats.workoutsTotal,
 		musclesHit,
