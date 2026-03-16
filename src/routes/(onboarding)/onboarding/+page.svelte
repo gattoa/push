@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import type { OnboardingData } from '$lib/types';
 	import { generatePlan } from '$lib/services/plan-generator';
+	import { saveGeneratedPlan } from '$lib/services/workout';
 	import ProgressBar from '$lib/components/onboarding/ProgressBar.svelte';
 	import StepAboutYou from '$lib/components/onboarding/StepAboutYou.svelte';
 	import StepTrainingDays from '$lib/components/onboarding/StepTrainingDays.svelte';
@@ -49,7 +50,8 @@
 	}
 
 	async function generate() {
-		await generatePlan(data);
+		const plan = await generatePlan(data);
+		saveGeneratedPlan(plan);
 		localStorage.setItem('push_onboarding_complete', 'true');
 		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
 		goto('/');
