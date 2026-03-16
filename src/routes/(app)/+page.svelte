@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { mockPlannedDays, mockPlannedSets, mockPlannedExercises, mockSetLogs, mockWeeklyPlan, getTodayIndex } from '$lib/mock/workouts';
+	import { getTodayIndex } from '$lib/mock/workouts';
+	import {
+		getPlan, getDays, getDay, getExercises, getExercisesForDay,
+		getPlannedSetsForDay, getSetLogsForDay, getAllSetLogs
+	} from '$lib/stores/workout.svelte';
 	import DailyWorkout from '$lib/components/DailyWorkout.svelte';
 	import CheckInCard from '$lib/components/CheckInCard.svelte';
 	import { isCheckInPending } from '$lib/stores/checkin';
@@ -22,34 +26,29 @@
 		forceCheckIn = params.get('checkin') === 'true';
 	});
 
-	const todayPlan = $derived(mockPlannedDays[dayIndex]);
-	const todayExercises = $derived(mockPlannedExercises.filter(e => e.planned_day_id === todayPlan.id));
-	const todayPlannedSets = $derived(mockPlannedSets.filter(s =>
-		todayExercises.some(e => e.id === s.planned_exercise_id)
-	));
-
-	// Wrap in $state for deep reactivity — mutations in SetCheckbox propagate up
-	let allSetLogs = $state(structuredClone(mockSetLogs));
-	const todaySetLogs = $derived(
-		allSetLogs.filter(s => todayExercises.some(e => e.id === s.planned_exercise_id))
-	);
+	const todayPlan = $derived(getDay(dayIndex));
+	const todayExercises = $derived(getExercisesForDay(todayPlan.id));
+	const todayPlannedSets = $derived(getPlannedSetsForDay(todayPlan.id));
+	const todaySetLogs = $derived(getSetLogsForDay(todayPlan.id));
 
 	const isTrainingDay = $derived(!todayPlan.is_rest_day);
 
 	// Check-in: appears after all training days in the week are completed
 	const allTrainingDaysComplete = $derived(() => {
-		for (const day of mockPlannedDays) {
+		const allDays = getDays();
+		const allLogs = getAllSetLogs();
+		for (const day of allDays) {
 			if (day.is_rest_day) continue;
-			const dayExercises = mockPlannedExercises.filter(e => e.planned_day_id === day.id);
+			const dayExercises = getExercisesForDay(day.id);
 			if (dayExercises.length === 0) continue;
-			const dayLogs = allSetLogs.filter(s => dayExercises.some(e => e.id === s.planned_exercise_id));
+			const dayLogs = allLogs.filter(s => dayExercises.some(e => e.id === s.planned_exercise_id));
 			if (!dayLogs.every(s => s.completed)) return false;
 		}
 		return true;
 	});
 	let checkInDismissed = $state(false);
 	const showCheckIn = $derived(
-		(forceCheckIn || allTrainingDaysComplete()) && !checkInDismissed && isCheckInPending(mockWeeklyPlan.id)
+		(forceCheckIn || allTrainingDaysComplete()) && !checkInDismissed && isCheckInPending(getPlan().id)
 	);
 	const completedSets = $derived(todaySetLogs.filter(s => s.completed).length);
 	const totalSets = $derived(todayPlannedSets.length);
@@ -58,10 +57,11 @@
 
 	// Next training day (for rest day display) — only looks forward within the week, no wrap-around
 	const nextTrainingDay = $derived((): { day: PlannedDay; exercises: PlannedExercise[] } | null => {
-		for (let idx = dayIndex + 1; idx < mockPlannedDays.length; idx++) {
-			const day = mockPlannedDays[idx];
+		const allDays = getDays();
+		for (let idx = dayIndex + 1; idx < allDays.length; idx++) {
+			const day = allDays[idx];
 			if (day && !day.is_rest_day) {
-				const exs = mockPlannedExercises.filter(e => e.planned_day_id === day.id);
+				const exs = getExercisesForDay(day.id);
 				return { day, exercises: exs };
 			}
 		}
@@ -101,7 +101,7 @@
 
 	{#if showCheckIn}
 		<CheckInCard
-			weekPlanId={mockWeeklyPlan.id}
+			weekPlanId={getPlan().id}
 			ondismiss={() => checkInDismissed = true}
 		/>
 	{/if}

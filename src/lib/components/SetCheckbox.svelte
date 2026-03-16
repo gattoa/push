@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PlannedSet, SetLog } from '$lib/types';
 	import { getPreferences } from '$lib/stores/preferences';
+	import { toggleSet } from '$lib/stores/workout.svelte';
 
 	let { plannedSet, setLog, onComplete }: {
 		plannedSet: PlannedSet;
@@ -11,14 +12,9 @@
 	const units = getPreferences().units;
 
 	function toggle() {
-		setLog.completed = !setLog.completed;
+		toggleSet(setLog.id);
 		if (setLog.completed) {
-			setLog.actual_reps = plannedSet.target_reps;
-			setLog.actual_weight = plannedSet.target_weight;
 			onComplete?.();
-		} else {
-			setLog.actual_reps = null;
-			setLog.actual_weight = null;
 		}
 	}
 
