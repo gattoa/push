@@ -129,6 +129,160 @@ export interface AppPreferences {
 	restTimerDefault: RestTimerSeconds;
 }
 
+// === Week History ===
+
+export interface WeekHistory {
+	weekNumber: number;
+	weekStart: string; // ISO date (Monday)
+	days: PlannedDay[];
+	exercises: PlannedExercise[];
+	plannedSets: PlannedSet[];
+	setLogs: SetLog[];
+}
+
+// === Profile / Stats View Types ===
+
+export interface WeekStats {
+	workoutsCompleted: number;
+	workoutsTotal: number;
+	setsCompleted: number;
+	setsTotal: number;
+	volume: number;
+}
+
+export interface PersonalRecord {
+	exerciseName: string;
+	estimated1RM: number;
+	weight: number;
+	reps: number;
+	weekStart: string;
+}
+
+export interface DayBreakdown {
+	dayOfWeek: number;
+	label: string;
+	isRestDay: boolean;
+	exercisesCompleted: number;
+	exercisesTotal: number;
+}
+
+export interface WeekSummary {
+	weekNumber: number;
+	weekStart: string;
+	dateRange: string;
+	dayBreakdowns: DayBreakdown[];
+	totalVolume: number;
+	workoutsCompleted: number;
+	workoutsTotal: number;
+	prsHit: PersonalRecord[];
+}
+
+export interface LifetimeStats {
+	totalWorkouts: number;
+	totalVolume: number;
+	longestStreak: number;
+	weeksActive: number;
+}
+
+export interface SetResult {
+	setNumber: number;
+	weight: number | null;
+	reps: number | null;
+	completed: boolean;
+}
+
+export interface DayExerciseDetail {
+	exerciseName: string;
+	exercisedbId: string;
+	sets: SetResult[];
+	allCompleted: boolean;
+}
+
+export interface CalendarDay {
+	dayOfWeek: number;
+	date: string;
+	label: string;
+	isRestDay: boolean;
+	isCompleted: boolean;
+	exercises: DayExerciseDetail[];
+}
+
+export interface CalendarWeek {
+	weekNumber: number;
+	weekStart: string;
+	isCurrent: boolean;
+	days: CalendarDay[];
+	totalVolume: number;
+	prsHit: PersonalRecord[];
+}
+
+export interface ExerciseSession {
+	date: string;
+	weekNumber: number;
+	dayLabel: string;
+	sets: SetResult[];
+	bestEstimated1RM: number | null;
+	isPR: boolean;
+}
+
+export interface ExerciseHistorySummary {
+	exerciseName: string;
+	currentEstimated1RM: number | null;
+	firstEstimated1RM: number | null;
+	percentChange: number | null;
+	sessions: ExerciseSession[];
+}
+
+export interface BodyPartExerciseDetail {
+	exerciseName: string;
+	sets: number;
+	exercisedbId: string;
+}
+
+export interface BodyPartScheduledDetail {
+	exerciseName: string;
+	dayLabel: string;
+	exercisedbId: string;
+}
+
+export interface WeekMomentum {
+	weekStart: string;
+	workoutsCompleted: number;
+	workoutsTotal: number;
+	bodyPartsHit: Map<string, number>;
+	totalBodyParts: number;
+	bodyPartsHitCount: number;
+	bodyPartExercises: Map<string, BodyPartExerciseDetail[]>;
+	bodyPartsScheduled: Map<string, BodyPartScheduledDetail[]>;
+	unmappedExercises: string[];
+	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; bodyParts: string[]; volume: number; isRestDay: boolean; exerciseNames: string[] }[];
+	streak: number;
+	weekPRs: PersonalRecord[];
+}
+
+export interface LastSessionExercise {
+	exerciseName: string;
+	exercisedbId: string;
+	currentSets: SetResult[];
+	previousBestSet: { weight: number; reps: number } | null;
+	currentBestSet: { weight: number; reps: number } | null;
+	isPR: boolean;
+}
+
+export interface LastSessionData {
+	date: string;
+	dayLabel: string;
+	exercises: LastSessionExercise[];
+}
+
+// === Plan Generation ===
+
+export interface GeneratedPlan {
+	days: PlannedDay[];
+	exercises: PlannedExercise[];
+	sets: PlannedSet[];
+}
+
 // === ExerciseDB API types ===
 
 export interface ExerciseDBSearchResult {

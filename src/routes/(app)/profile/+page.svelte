@@ -5,15 +5,16 @@
 	} from '$lib/types';
 	import BottomSheet from '$lib/components/BottomSheet.svelte';
 	import AccountSheet from '$lib/components/AccountSheet.svelte';
-	import { mockWeekHistories } from '$lib/mock/profile-history';
-	import { computeWeekMomentum, computeStreak } from '$lib/mock/profile';
-	import { getTodayIndex } from '$lib/mock/workouts';
+	import { getWeekHistories } from '$lib/services/history';
+	import { computeWeekMomentum } from '$lib/utils/workout-stats';
+	import { getTodayIndex } from '$lib/utils/date';
 	import WeekCard from '$lib/components/WeekCard.svelte';
 	import MuscleCard from '$lib/components/MuscleCard.svelte';
 
 	let accountSheetOpen = $state(false);
 	let email = $state('');
 	let units: 'lbs' | 'kg' = $state('lbs');
+	let momentum: import('$lib/types').WeekMomentum | null = $state(null);
 
 	let data: OnboardingData = $state({
 		dateOfBirth: null,
@@ -33,6 +34,8 @@
 	});
 
 	onMount(() => {
+		const histories = getWeekHistories();
+		momentum = computeWeekMomentum(histories, getTodayIndex());
 		const rawData = localStorage.getItem('push_onboarding_data');
 		if (rawData) {
 			try {
@@ -72,9 +75,7 @@
 		if (email) localStorage.setItem('push_email', email);
 	});
 
-	// Momentum data
-	const momentum = $derived(computeWeekMomentum(mockWeekHistories, getTodayIndex()));
-	const streakData = $derived(computeStreak(mockWeekHistories));
+	// streakData not currently used in template but keeping for future use
 	const avatarInitial = $derived(email ? email[0].toUpperCase() : 'P');
 
 	// Display labels
@@ -183,40 +184,42 @@
 		{/if}
 	</div>
 
-	<!-- This Week — the momentum centerpiece -->
-	<WeekCard {momentum} />
+	{#if momentum}
+		<!-- This Week — the momentum centerpiece -->
+		<WeekCard {momentum} />
 
-	<!-- Muscles trained -->
-	<MuscleCard {momentum} />
+		<!-- Muscles trained -->
+		<MuscleCard {momentum} />
 
-	<!-- Streak + PRs — breadcrumbs of consistency -->
-	{#if momentum.streak > 0 || momentum.weekPRs.length > 0}
-		<div class="wins">
-			{#if momentum.streak > 0}
-				<div class="win-item">
-					<span class="win-number">{momentum.streak}</span>
-					<span class="win-label">{momentum.streak === 1 ? 'day' : 'days'} strong</span>
-				</div>
-			{/if}
-			{#if momentum.weekPRs.length > 0}
-				<div class="win-item">
-					<span class="win-number">{momentum.weekPRs.length}</span>
-					<span class="win-label">{momentum.weekPRs.length === 1 ? 'PR' : 'PRs'} this week</span>
-				</div>
-			{/if}
-		</div>
-	{/if}
+		<!-- Streak + PRs — breadcrumbs of consistency -->
+		{#if momentum.streak > 0 || momentum.weekPRs.length > 0}
+			<div class="wins">
+				{#if momentum.streak > 0}
+					<div class="win-item">
+						<span class="win-number">{momentum.streak}</span>
+						<span class="win-label">{momentum.streak === 1 ? 'day' : 'days'} strong</span>
+					</div>
+				{/if}
+				{#if momentum.weekPRs.length > 0}
+					<div class="win-item">
+						<span class="win-number">{momentum.weekPRs.length}</span>
+						<span class="win-label">{momentum.weekPRs.length === 1 ? 'PR' : 'PRs'} this week</span>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
-	<!-- PR details if any -->
-	{#if momentum.weekPRs.length > 0}
-		<div class="pr-list">
-			{#each momentum.weekPRs as pr (pr.exerciseName)}
-				<div class="pr-chip">
-					<span class="pr-badge">PR</span>
-					<span class="pr-name">{pr.exerciseName}</span>
-				</div>
-			{/each}
-		</div>
+		<!-- PR details if any -->
+		{#if momentum.weekPRs.length > 0}
+			<div class="pr-list">
+				{#each momentum.weekPRs as pr (pr.exerciseName)}
+					<div class="pr-chip">
+						<span class="pr-badge">PR</span>
+						<span class="pr-name">{pr.exerciseName}</span>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	{/if}
 
 </div>

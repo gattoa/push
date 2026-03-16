@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { OnboardingData } from '$lib/types';
-	import { generateMockPlan } from '$lib/mock/plan-generator';
+	import { generatePlan } from '$lib/services/plan-generator';
 	import ProgressBar from '$lib/components/onboarding/ProgressBar.svelte';
 	import StepAboutYou from '$lib/components/onboarding/StepAboutYou.svelte';
 	import StepTrainingDays from '$lib/components/onboarding/StepTrainingDays.svelte';
@@ -48,8 +48,8 @@
 		}
 	}
 
-	function generate() {
-		generateMockPlan(data);
+	async function generate() {
+		await generatePlan(data);
 		localStorage.setItem('push_onboarding_complete', 'true');
 		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
 		goto('/');

@@ -9,18 +9,29 @@
 	import SetRow from '$lib/components/SetRow.svelte';
 	import QuickComplete from '$lib/components/QuickComplete.svelte';
 	import ExerciseHistory from '$lib/components/ExerciseHistory.svelte';
-	import { mockWeekHistories } from '$lib/mock/profile-history';
-	import { computeExerciseHistory } from '$lib/mock/profile';
+	import { getWeekHistories } from '$lib/services/history';
+	import { computeExerciseHistory } from '$lib/utils/workout-stats';
+	import { onMount } from 'svelte';
 
 	let { data } = $props();
 	let exercise: ExerciseDBExercise | null = $derived(data.exercise);
 	const units = getPreferences().units;
 
+	let exerciseHistoryData = $state<import('$lib/types').ExerciseHistorySummary | null>(null);
+
+	onMount(() => {
+		const histories = getWeekHistories();
+		const eid = data.exerciseId ?? '';
+		if (eid && histories.length > 0) {
+			exerciseHistoryData = computeExerciseHistory(eid, histories);
+		}
+	});
+
 	let exerciseId = $derived(data.exerciseId ?? '');
 	let plannedExercise = $derived(getExerciseByDbId(exerciseId) ?? null);
 	let plannedSets = $derived(plannedExercise ? getSetsForExercise(plannedExercise.id) : []);
 	let setLogs = $derived(plannedExercise ? getLogsForExercise(plannedExercise.id) : []);
-	let exerciseHistory = $derived(exerciseId ? computeExerciseHistory(exerciseId, mockWeekHistories) : null);
+	let exerciseHistory = $derived(exerciseHistoryData);
 
 	let completedCount = $derived(setLogs.filter(s => s.completed).length);
 	let allDone = $derived(completedCount === plannedSets.length && plannedSets.length > 0);

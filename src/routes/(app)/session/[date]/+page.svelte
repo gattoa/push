@@ -2,16 +2,16 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import type { AppPreferences } from '$lib/types';
-	import { mockWeekHistories } from '$lib/mock/profile-history';
-	import {
-		computeCalendarWeeks,
-		convertWeight,
-		type CalendarDay
-	} from '$lib/mock/profile';
+	import { getWeekHistories } from '$lib/services/history';
+	import type { CalendarDay } from '$lib/types';
+	import { computeCalendarWeeks, convertWeight } from '$lib/utils/workout-stats';
 
 	let units: 'lbs' | 'kg' = $state('lbs');
+	let calendarWeeks = $state(computeCalendarWeeks([]));
 
 	onMount(() => {
+		const histories = getWeekHistories();
+		calendarWeeks = computeCalendarWeeks(histories);
 		const rawPrefs = localStorage.getItem('push_preferences');
 		if (rawPrefs) {
 			try {
@@ -20,8 +20,6 @@
 			} catch { /* ignore */ }
 		}
 	});
-
-	const calendarWeeks = $derived(computeCalendarWeeks(mockWeekHistories));
 	const dateParam = $derived($page.params.date ?? '');
 
 	const dayData = $derived.by(() => {

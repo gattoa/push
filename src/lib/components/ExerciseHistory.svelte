@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { ExerciseHistorySummary } from '$lib/mock/profile';
-	import { convertWeight } from '$lib/mock/profile';
+	import type { ExerciseHistorySummary } from '$lib/types';
+	import { convertWeight } from '$lib/utils/workout-stats';
 
 	let { history, units, embedded = false }: {
 		history: ExerciseHistorySummary;

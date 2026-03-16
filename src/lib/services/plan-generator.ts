@@ -1,27 +1,22 @@
-import type { OnboardingData, PlannedDay, PlannedExercise, PlannedSet, InjuryArea } from '$lib/types';
+import type { OnboardingData, PlannedDay, PlannedExercise, PlannedSet, InjuryArea, GeneratedPlan } from '$lib/types';
 
-export interface GeneratedPlan {
-	days: PlannedDay[];
-	exercises: PlannedExercise[];
-	sets: PlannedSet[];
-}
+// ============================================================
+// Mock plan generator (will be replaced by Claude API)
+// ============================================================
 
-// Exercises excluded per injury area (hard-coded safety constraints)
 const INJURY_EXCLUSIONS: Record<InjuryArea, string[]> = {
 	shoulder: ['Seated Shoulder Press', 'Lateral Raise', 'Chest Dip'],
 	back: ['One Arm Bent-over Row', 'Romanian Deadlift', 'Squat'],
 	knee: ['Squat', 'Bulgarian Split Squat', 'Seated Calf Raise']
 };
 
-// Exercise pool organized by workout type
-// All IDs and bodyParts sourced from ExerciseDB via exercises.json
 interface ExerciseTemplate {
 	name: string;
 	exercisedbId: string;
 	bodyParts: string[];
 	targetMuscles: string[];
 	isBodyweight: boolean;
-	baseWeight: number; // intermediate baseline in lbs
+	baseWeight: number;
 	baseSets: { reps: number; weightMultiplier: number }[];
 }
 
@@ -321,7 +316,6 @@ const LEG_EXERCISES: ExerciseTemplate[] = [
 	}
 ];
 
-// PPL split patterns by training days
 const SPLIT_PATTERNS: Record<number, string[]> = {
 	3: ['Push', 'Pull', 'Legs', 'Rest', 'Rest', 'Rest', 'Rest'],
 	4: ['Push', 'Pull', 'Legs', 'Rest', 'Push', 'Rest', 'Rest'],
@@ -331,14 +325,10 @@ const SPLIT_PATTERNS: Record<number, string[]> = {
 
 function getExercisePool(label: string): ExerciseTemplate[] {
 	switch (label) {
-		case 'Push':
-			return PUSH_EXERCISES;
-		case 'Pull':
-			return PULL_EXERCISES;
-		case 'Legs':
-			return LEG_EXERCISES;
-		default:
-			return [];
+		case 'Push': return PUSH_EXERCISES;
+		case 'Pull': return PULL_EXERCISES;
+		case 'Legs': return LEG_EXERCISES;
+		default: return [];
 	}
 }
 
@@ -356,14 +346,13 @@ function roundWeight(weight: number): number {
 	return Math.round(weight / 5) * 5;
 }
 
-export function generateMockPlan(data: OnboardingData): GeneratedPlan {
+function generateMockPlan(data: OnboardingData): GeneratedPlan {
 	const pattern = SPLIT_PATTERNS[data.trainingDays ?? 3] ?? SPLIT_PATTERNS[3];
 	const experience = data.experienceLevel ?? 'intermediate';
 	const goals = data.goals.length > 0 ? data.goals : ['build_muscle' as const];
 	const primaryGoal = goals[0];
 
-	// Derive age from DOB
-	let userAge = 25; // default
+	let userAge = 25;
 	if (data.dateOfBirth) {
 		const birth = new Date(data.dateOfBirth + 'T00:00:00');
 		const today = new Date();
@@ -372,15 +361,12 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 		if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) userAge--;
 	}
 
-	// Experience multipliers
 	const weightMultiplier = experience === 'beginner' ? 0.6 : experience === 'advanced' ? 1.15 : 1.0;
 	const maxSetsPerExercise = experience === 'beginner' ? 2 : experience === 'advanced' ? 4 : 3;
 
-	// Age adjustments — scale weight down and enforce minimum reps for older lifters
 	const ageWeightMultiplier = userAge >= 50 ? 0.75 : userAge >= 35 ? 0.9 : 1.0;
 	const ageMinReps = userAge >= 50 ? 8 : userAge >= 35 ? 5 : 1;
 
-	// Goal adjustments
 	let repAdjust = 0;
 	let goalWeightMultiplier = 1.0;
 	if (primaryGoal === 'lose_fat') {
@@ -395,7 +381,6 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 	const exercises: PlannedExercise[] = [];
 	const sets: PlannedSet[] = [];
 
-	// Track which push/pull/legs variant we're on to alternate exercise selection
 	const labelCount: Record<string, number> = {};
 
 	for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
@@ -413,16 +398,13 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 
 		if (isRest) continue;
 
-		// Get exercise pool, filter injuries, and pick 3
 		const count = (labelCount[label] ?? 0);
 		labelCount[label] = count + 1;
 		const pool = getExercisePool(label);
 		const safePool = filterByInjuries(pool, data.injuries);
 
-		// Alternate: first occurrence takes first 3, second takes next 3
 		const offset = count * 3;
 		const picked = safePool.slice(offset, offset + 3);
-		// If not enough, wrap around
 		const finalExercises = picked.length >= 3
 			? picked
 			: [...picked, ...safePool.filter((e) => !picked.includes(e))].slice(0, 3);
@@ -443,7 +425,6 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 			});
 
 			const templateSets = tmpl.baseSets.slice(0, maxSetsPerExercise);
-			// Advanced: duplicate last set if we need a 4th and template only has 3
 			if (maxSetsPerExercise === 4 && templateSets.length === 3) {
 				templateSets.push(templateSets[templateSets.length - 1]);
 			}
@@ -467,4 +448,13 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 	}
 
 	return { days, exercises, sets };
+}
+
+// ============================================================
+// Service API
+// ============================================================
+
+/** Generate a training plan from onboarding data. Mock now; Claude API later. */
+export async function generatePlan(data: OnboardingData): Promise<GeneratedPlan> {
+	return generateMockPlan(data);
 }

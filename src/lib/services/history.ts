@@ -1,16 +1,9 @@
-import type { PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
+import type { PlannedDay, PlannedExercise, PlannedSet, SetLog, WeekHistory } from '$lib/types';
 
-export interface WeekHistory {
-	weekNumber: number;
-	weekStart: string; // ISO date (Monday)
-	days: PlannedDay[];
-	exercises: PlannedExercise[];
-	plannedSets: PlannedSet[];
-	setLogs: SetLog[];
-}
+// ============================================================
+// Mock history data (will be replaced by Supabase queries)
+// ============================================================
 
-// Same PPL exercise template used across all weeks
-// All IDs and body_parts sourced from ExerciseDB via exercises.json
 const EXERCISE_TEMPLATE = [
 	// Mon - Push
 	{ dayIdx: 0, exercises: [
@@ -46,7 +39,6 @@ const EXERCISE_TEMPLATE = [
 	]}
 ];
 
-// Base weights per exercise (week 1 baseline). Null = bodyweight.
 const BASE_WEIGHTS: Record<string, (number | null)[]> = {
 	'Bench Press':                    [125, 140, 160],
 	'Seated Shoulder Press':          [50, 60, 70],
@@ -85,14 +77,9 @@ const BASE_REPS: Record<string, number[]> = {
 	'Cross Body Hammer Curl':         [12, 10, 8]
 };
 
-// Weight progression multiplier per week (simulates progressive overload)
 const WEEK_MULTIPLIERS = [1.0, 1.05, 1.1, 1.1];
 
 // Which days are completed per week (by day_of_week index)
-// Week 1: 4/5 (missed Saturday pull)
-// Week 2: 5/5
-// Week 3: 4/5 (missed Friday push)
-// Week 4: 3/5 (current week in progress - Mon/Tue/Wed done)
 const COMPLETED_DAYS: number[][] = [
 	[0, 1, 2, 4],       // Week 1
 	[0, 1, 2, 4, 5],    // Week 2
@@ -101,7 +88,7 @@ const COMPLETED_DAYS: number[][] = [
 ];
 
 function roundWeight(w: number): number {
-	return Math.round(w / 5) * 5; // Round to nearest 5
+	return Math.round(w / 5) * 5;
 }
 
 function generateWeek(weekNum: number, weekStart: string): WeekHistory {
@@ -179,9 +166,25 @@ function generateWeek(weekNum: number, weekStart: string): WeekHistory {
 	return { weekNumber: weekNum, weekStart, days, exercises, plannedSets, setLogs };
 }
 
-export const mockWeekHistories: WeekHistory[] = [
-	generateWeek(1, '2026-02-16'),
-	generateWeek(2, '2026-02-23'),
-	generateWeek(3, '2026-03-02'),
-	generateWeek(4, '2026-03-09')
-];
+let _cached: WeekHistory[] | null = null;
+
+function getMockWeekHistories(): WeekHistory[] {
+	if (!_cached) {
+		_cached = [
+			generateWeek(1, '2026-02-16'),
+			generateWeek(2, '2026-02-23'),
+			generateWeek(3, '2026-03-02'),
+			generateWeek(4, '2026-03-09')
+		];
+	}
+	return _cached;
+}
+
+// ============================================================
+// Service API
+// ============================================================
+
+/** Fetch all completed week histories for the current user. Mock data now; Supabase later. */
+export function getWeekHistories(): WeekHistory[] {
+	return getMockWeekHistories();
+}

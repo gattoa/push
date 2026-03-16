@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { WeekMomentum } from '$lib/mock/profile';
-	import { getTodayIndex } from '$lib/mock/workouts';
+	import type { WeekMomentum } from '$lib/types';
+	import { getTodayIndex } from '$lib/utils/date';
 
 	let { momentum }: {
 		momentum: WeekMomentum;

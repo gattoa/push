@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { LastSessionData } from '$lib/mock/profile';
-	import { convertWeight } from '$lib/mock/profile';
+	import type { LastSessionData } from '$lib/types';
+	import { convertWeight } from '$lib/utils/workout-stats';
 
 	let { session, units }: {
 		session: LastSessionData;

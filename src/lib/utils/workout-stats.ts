@@ -1,47 +1,13 @@
-import type { PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
-import type { WeekHistory } from './profile-history';
+import type {
+	PlannedDay, PlannedExercise, SetLog,
+	WeekHistory, WeekStats, PersonalRecord, DayBreakdown, WeekSummary,
+	LifetimeStats, SetResult, DayExerciseDetail, CalendarDay, CalendarWeek,
+	ExerciseSession, ExerciseHistorySummary,
+	BodyPartExerciseDetail, BodyPartScheduledDetail, WeekMomentum,
+	LastSessionExercise, LastSessionData
+} from '$lib/types';
 
-export interface WeekStats {
-	workoutsCompleted: number;
-	workoutsTotal: number;
-	setsCompleted: number;
-	setsTotal: number;
-	volume: number;
-}
-
-export interface PersonalRecord {
-	exerciseName: string;
-	estimated1RM: number;
-	weight: number;
-	reps: number;
-	weekStart: string;
-}
-
-export interface DayBreakdown {
-	dayOfWeek: number;
-	label: string;
-	isRestDay: boolean;
-	exercisesCompleted: number;
-	exercisesTotal: number;
-}
-
-export interface WeekSummary {
-	weekNumber: number;
-	weekStart: string;
-	dateRange: string;
-	dayBreakdowns: DayBreakdown[];
-	totalVolume: number;
-	workoutsCompleted: number;
-	workoutsTotal: number;
-	prsHit: PersonalRecord[];
-}
-
-export interface LifetimeStats {
-	totalWorkouts: number;
-	totalVolume: number;
-	longestStreak: number;
-	weeksActive: number;
-}
+// === Internal helpers ===
 
 function epley1RM(weight: number, reps: number): number {
 	if (reps === 1) return weight;
@@ -72,6 +38,14 @@ function isDayCompleted(day: PlannedDay, exercises: PlannedExercise[], setLogs: 
 	return daySets.length > 0 && daySets.some(s => s.completed);
 }
 
+function computeDayDate(weekStart: string, dayOfWeek: number): string {
+	const d = new Date(weekStart + 'T00:00:00');
+	d.setDate(d.getDate() + dayOfWeek);
+	return d.toISOString().split('T')[0];
+}
+
+// === Exported computation functions ===
+
 export function computeWeekStats(week: WeekHistory): WeekStats {
 	const trainingDays = getTrainingDays(week);
 	const workoutsTotal = trainingDays.length;
@@ -98,7 +72,6 @@ export function computeWeekStats(week: WeekHistory): WeekStats {
 }
 
 export function computeStreak(weeks: WeekHistory[]): { current: number; best: number } {
-	// Build a flat ordered list of training days across all weeks (chronological)
 	const allDays: { completed: boolean }[] = [];
 
 	for (const week of weeks) {
@@ -110,7 +83,6 @@ export function computeStreak(weeks: WeekHistory[]): { current: number; best: nu
 		}
 	}
 
-	// Current streak: walk backward from end
 	let current = 0;
 	for (let i = allDays.length - 1; i >= 0; i--) {
 		if (allDays[i].completed) {
@@ -120,7 +92,6 @@ export function computeStreak(weeks: WeekHistory[]): { current: number; best: nu
 		}
 	}
 
-	// Best streak: scan forward
 	let best = 0;
 	let run = 0;
 	for (const day of allDays) {
@@ -168,7 +139,6 @@ export function computePersonalRecords(weeks: WeekHistory[]): PersonalRecord[] {
 
 export function computeWeekPRs(weekIndex: number, weeks: WeekHistory[]): PersonalRecord[] {
 	if (weekIndex === 0) {
-		// First week: all completed lifts are PRs by definition — return top ones
 		return computePersonalRecords([weeks[0]]).slice(0, 3);
 	}
 
@@ -304,7 +274,6 @@ export function computeRecentPRs(weeks: WeekHistory[]): PersonalRecord[] {
 	const prevIdx = weeks.length - 2;
 	const previousPRs = computeWeekPRs(prevIdx, weeks);
 
-	// Merge, keeping the better PR per exercise
 	const byExercise = new Map<string, PersonalRecord>();
 	for (const pr of [...previousPRs, ...currentPRs]) {
 		const existing = byExercise.get(pr.exerciseName);
@@ -316,66 +285,7 @@ export function computeRecentPRs(weeks: WeekHistory[]): PersonalRecord[] {
 	return Array.from(byExercise.values()).sort((a, b) => b.estimated1RM - a.estimated1RM);
 }
 
-// === Calendar View Types ===
-
-export interface SetResult {
-	setNumber: number;
-	weight: number | null;
-	reps: number | null;
-	completed: boolean;
-}
-
-export interface DayExerciseDetail {
-	exerciseName: string;
-	exercisedbId: string;
-	sets: SetResult[];
-	allCompleted: boolean;
-}
-
-export interface CalendarDay {
-	dayOfWeek: number;
-	date: string;
-	label: string;
-	isRestDay: boolean;
-	isCompleted: boolean;
-	exercises: DayExerciseDetail[];
-}
-
-export interface CalendarWeek {
-	weekNumber: number;
-	weekStart: string;
-	isCurrent: boolean;
-	days: CalendarDay[];
-	totalVolume: number;
-	prsHit: PersonalRecord[];
-}
-
-// === Exercise History Types ===
-
-export interface ExerciseSession {
-	date: string;
-	weekNumber: number;
-	dayLabel: string;
-	sets: SetResult[];
-	bestEstimated1RM: number | null;
-	isPR: boolean;
-}
-
-export interface ExerciseHistorySummary {
-	exerciseName: string;
-	currentEstimated1RM: number | null;
-	firstEstimated1RM: number | null;
-	percentChange: number | null;
-	sessions: ExerciseSession[];
-}
-
 // === Calendar Computation ===
-
-function computeDayDate(weekStart: string, dayOfWeek: number): string {
-	const d = new Date(weekStart + 'T00:00:00');
-	d.setDate(d.getDate() + dayOfWeek);
-	return d.toISOString().split('T')[0];
-}
 
 export function computeCalendarWeeks(weeks: WeekHistory[]): CalendarWeek[] {
 	return weeks.map((week, weekIndex) => {
@@ -388,7 +298,6 @@ export function computeCalendarWeeks(weeks: WeekHistory[]): CalendarWeek[] {
 		for (let dow = 0; dow < 7; dow++) {
 			const day = daysByDow.get(dow);
 			if (!day) {
-				// No planned day for this slot (shouldn't happen with 7-day plans, but handle gracefully)
 				days.push({
 					dayOfWeek: dow,
 					date: computeDayDate(week.weekStart, dow),
@@ -480,7 +389,6 @@ export function computeExerciseHistory(exercisedbId: string, weeks: WeekHistory[
 				completed: s.completed
 			}));
 
-			// Best e1RM from this session's completed sets
 			let bestE1RM: number | null = null;
 			for (const s of exSetLogs) {
 				if (s.completed && s.actual_weight !== null && s.actual_weight > 0 && s.actual_reps !== null) {
@@ -504,7 +412,6 @@ export function computeExerciseHistory(exercisedbId: string, weeks: WeekHistory[
 
 	if (sessions.length === 0) return null;
 
-	// Mark the session with the best overall e1RM as PR
 	let bestOverall = -1;
 	let bestIdx = -1;
 	for (let i = 0; i < sessions.length; i++) {
@@ -518,7 +425,6 @@ export function computeExerciseHistory(exercisedbId: string, weeks: WeekHistory[
 		sessions[bestIdx].isPR = true;
 	}
 
-	// Sort newest first
 	sessions.sort((a, b) => b.date.localeCompare(a.date));
 
 	const withE1RM = sessions.filter(s => s.bestEstimated1RM !== null);
@@ -539,13 +445,13 @@ export function computeExerciseHistory(exercisedbId: string, weeks: WeekHistory[
 	};
 }
 
-// === Profile V2 Functions ===
+// === PR Count ===
 
 export function computeTotalPRCount(weeks: WeekHistory[]): number {
 	return computePersonalRecords(weeks).length;
 }
 
-// === Body Part Regions (for grouping ExerciseDB bodyParts) ===
+// === Body Part Regions ===
 
 export const BODY_REGIONS: Record<string, string[]> = {
 	'Upper Body': ['CHEST', 'BACK', 'SHOULDERS', 'UPPER ARMS', 'FOREARMS', 'TRICEPS', 'BICEPS', 'NECK'],
@@ -561,33 +467,6 @@ export function getBodyRegion(bodyPart: string): string {
 }
 
 // === Weekly Momentum ===
-
-export interface BodyPartExerciseDetail {
-	exerciseName: string;
-	sets: number;
-	exercisedbId: string;
-}
-
-export interface BodyPartScheduledDetail {
-	exerciseName: string;
-	dayLabel: string;
-	exercisedbId: string;
-}
-
-export interface WeekMomentum {
-	weekStart: string;
-	workoutsCompleted: number;
-	workoutsTotal: number;
-	bodyPartsHit: Map<string, number>; // body part → number of sets
-	totalBodyParts: number;
-	bodyPartsHitCount: number;
-	bodyPartExercises: Map<string, BodyPartExerciseDetail[]>; // per-exercise detail for sheet
-	bodyPartsScheduled: Map<string, BodyPartScheduledDetail[]>; // from future incomplete days
-	unmappedExercises: string[];
-	dayCompletions: { dayOfWeek: number; label: string; completed: boolean; bodyParts: string[]; volume: number; isRestDay: boolean; exerciseNames: string[] }[];
-	streak: number;
-	weekPRs: PersonalRecord[];
-}
 
 export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): WeekMomentum {
 	const currentWeek = weeks[weeks.length - 1];
@@ -612,7 +491,6 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 			const dayBodyParts: Set<string> = new Set();
 			let volume = 0;
 
-			// Track all body parts in the plan (for total count)
 			for (const ex of dayExercises) {
 				for (const bp of ex.body_parts) allBodyParts.add(bp);
 				if (ex.body_parts.length === 0 && !day.is_rest_day) {
@@ -636,7 +514,6 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 						dayBodyParts.add(bp);
 						bodyPartsHit.set(bp, (bodyPartsHit.get(bp) ?? 0) + exSetLogs.length);
 
-						// Track per-exercise detail
 						if (!bodyPartExercises.has(bp)) bodyPartExercises.set(bp, []);
 						bodyPartExercises.get(bp)!.push({
 							exerciseName: ex.exercise_name,
@@ -646,7 +523,6 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 					}
 				}
 			} else if (!day.is_rest_day && todayIndex !== undefined && day.day_of_week > todayIndex) {
-				// Future incomplete training day — track as scheduled
 				for (const ex of dayExercises) {
 					for (const bp of ex.body_parts) {
 						if (!bodyPartsScheduled.has(bp)) bodyPartsScheduled.set(bp, []);
@@ -686,28 +562,14 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 	};
 }
 
-export interface LastSessionExercise {
-	exerciseName: string;
-	exercisedbId: string;
-	currentSets: SetResult[];
-	previousBestSet: { weight: number; reps: number } | null;
-	currentBestSet: { weight: number; reps: number } | null;
-	isPR: boolean;
-}
-
-export interface LastSessionData {
-	date: string;
-	dayLabel: string;
-	exercises: LastSessionExercise[];
-}
+// === Last Completed Session ===
 
 export function getLastCompletedSession(weeks: WeekHistory[]): LastSessionData | null {
-	// Walk backwards through weeks and days to find the most recent completed training day
 	for (let wi = weeks.length - 1; wi >= 0; wi--) {
 		const week = weeks[wi];
 		const trainingDays = week.days
 			.filter(d => !d.is_rest_day)
-			.sort((a, b) => b.day_of_week - a.day_of_week); // Reverse order (most recent first)
+			.sort((a, b) => b.day_of_week - a.day_of_week);
 
 		for (const day of trainingDays) {
 			const dayExercises = week.exercises.filter(e => e.planned_day_id === day.id);
@@ -719,7 +581,6 @@ export function getLastCompletedSession(weeks: WeekHistory[]): LastSessionData |
 			const hasCompleted = daySetLogs.some(s => s.completed);
 			if (!hasCompleted) continue;
 
-			// Found the most recent completed day
 			const exercises: LastSessionExercise[] = dayExercises
 				.sort((a, b) => a.order - b.order)
 				.map(ex => {
@@ -734,7 +595,6 @@ export function getLastCompletedSession(weeks: WeekHistory[]): LastSessionData |
 						completed: s.completed
 					}));
 
-					// Find best set in current session (highest e1RM)
 					let currentBestSet: { weight: number; reps: number } | null = null;
 					let currentBestE1RM = 0;
 					for (const s of exSetLogs) {
@@ -747,10 +607,8 @@ export function getLastCompletedSession(weeks: WeekHistory[]): LastSessionData |
 						}
 					}
 
-					// Find previous best for this exercise (from all prior sessions)
 					const previousBestSet = getPreviousBestSet(ex.exercisedb_id, wi, day.day_of_week, weeks);
 
-					// Check if this is a PR
 					const allTimePRs = computePersonalRecords(weeks);
 					const exercisePR = allTimePRs.find(pr => pr.exerciseName === ex.exercise_name);
 					const isPR = exercisePR !== null && currentBestE1RM > 0 &&
@@ -791,7 +649,6 @@ function getPreviousBestSet(
 			const day = week.days.find(d => d.id === ex.planned_day_id);
 			if (!day) continue;
 
-			// Skip the current session itself
 			if (wi === currentWeekIdx && day.day_of_week >= currentDayOfWeek) continue;
 
 			const exSetLogs = week.setLogs.filter(

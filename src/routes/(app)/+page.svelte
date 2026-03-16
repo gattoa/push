@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { getTodayIndex } from '$lib/mock/workouts';
+	import { getTodayIndex } from '$lib/utils/date';
 	import {
 		getPlan, getDays, getDay, getExercises, getExercisesForDay,
 		getPlannedSetsForDay, getSetLogsForDay, getAllSetLogs
@@ -48,7 +48,7 @@
 	});
 	let checkInDismissed = $state(false);
 	const showCheckIn = $derived(
-		(forceCheckIn || allTrainingDaysComplete()) && !checkInDismissed && isCheckInPending(getPlan().id)
+		(forceCheckIn || allTrainingDaysComplete()) && !checkInDismissed && isCheckInPending(getPlan()!.id)
 	);
 	const completedSets = $derived(todaySetLogs.filter(s => s.completed).length);
 	const totalSets = $derived(todayPlannedSets.length);
@@ -101,7 +101,7 @@
 
 	{#if showCheckIn}
 		<CheckInCard
-			weekPlanId={getPlan().id}
+			weekPlanId={getPlan()!.id}
 			ondismiss={() => checkInDismissed = true}
 		/>
 	{/if}

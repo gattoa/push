@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { CalendarDay } from '$lib/mock/profile';
-	import { convertWeight } from '$lib/mock/profile';
+	import type { CalendarDay } from '$lib/types';
+	import { convertWeight } from '$lib/utils/workout-stats';
 
 	let { day, units }: {
 		day: CalendarDay;

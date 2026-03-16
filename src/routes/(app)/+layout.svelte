@@ -1,7 +1,16 @@
 <script>
+	import { onMount } from 'svelte';
 	import Navigation from '$lib/components/Navigation.svelte';
+	import { initWorkoutStore, isLoaded } from '$lib/stores/workout.svelte';
+
 	let { children } = $props();
+
+	onMount(() => {
+		initWorkoutStore();
+	});
 </script>
 
 <Navigation />
-<main style="padding-top: 4rem;">{@render children()}</main>
+{#if isLoaded()}
+	<main style="padding-top: 4rem;">{@render children()}</main>
+{/if}

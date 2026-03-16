@@ -1,16 +1,27 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import WeekSchedule from '$lib/components/WeekSchedule.svelte';
-	import { computeWeekMomentum } from '$lib/mock/profile';
-	import { getTodayIndex } from '$lib/mock/workouts';
-	import { mockWeekHistories } from '$lib/mock/profile-history';
+	import { computeWeekMomentum } from '$lib/utils/workout-stats';
+	import { getTodayIndex } from '$lib/utils/date';
+	import { getWeekHistories } from '$lib/services/history';
+	import type { WeekHistory, WeekMomentum } from '$lib/types';
 
-	const momentum = $derived(computeWeekMomentum(mockWeekHistories, getTodayIndex()));
+	let momentum: WeekMomentum | null = $state(null);
+
+	onMount(() => {
+		const histories = getWeekHistories();
+		momentum = computeWeekMomentum(histories, getTodayIndex());
+	});
 </script>
 
+{#if momentum}
 <div class="plan">
 	<h1>This Week</h1>
 	<WeekSchedule {momentum} />
 </div>
+{:else}
+<p style="padding:1rem;color:red;font-size:12px;">loading...</p>
+{/if}
 
 <style>
 	.plan {

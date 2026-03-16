@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { WeekMomentum, BodyPartExerciseDetail, BodyPartScheduledDetail } from '$lib/mock/profile';
+	import type { WeekMomentum, BodyPartExerciseDetail, BodyPartScheduledDetail } from '$lib/types';
 	import BottomSheet from '$lib/components/BottomSheet.svelte';
 
 	let { momentum }: {

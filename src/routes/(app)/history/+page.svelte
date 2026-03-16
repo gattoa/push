@@ -6,16 +6,16 @@
 	import PhotoUpload from '$lib/components/PhotoUpload.svelte';
 	import PhotoViewer from '$lib/components/PhotoViewer.svelte';
 	import { getAllPhotos, type ProgressPhoto } from '$lib/stores/photos';
-	import { mockWeekHistories } from '$lib/mock/profile-history';
+	import { getWeekHistories } from '$lib/services/history';
+	import type { CalendarDay } from '$lib/types';
 	import {
 		computeCalendarWeeks,
 		computePersonalRecords,
 		computeStreak,
 		computeTotalPRCount,
 		computeLifetimeStats,
-		convertWeight,
-		type CalendarDay
-	} from '$lib/mock/profile';
+		convertWeight
+	} from '$lib/utils/workout-stats';
 
 	let units: 'lbs' | 'kg' = $state('lbs');
 	let photos: ProgressPhoto[] = $state([]);
@@ -23,8 +23,19 @@
 	let viewerPhotoId = $state('');
 	let viewerDate = $state('');
 	let selectedDay = $state<CalendarDay | null>(null);
+	let calendarWeeks = $state(computeCalendarWeeks([]));
+	let personalRecords = $state(computePersonalRecords([]));
+	let streak = $state(computeStreak([]));
+	let lifetimeStats = $state(computeLifetimeStats([]));
+	let prCount = $state(0);
 
-	onMount(() => {
+	onMount(async () => {
+		const histories = getWeekHistories();
+		calendarWeeks = computeCalendarWeeks(histories);
+		personalRecords = computePersonalRecords(histories);
+		streak = computeStreak(histories);
+		lifetimeStats = computeLifetimeStats(histories);
+		prCount = computeTotalPRCount(histories);
 		const rawPrefs = localStorage.getItem('push_preferences');
 		if (rawPrefs) {
 			try {
@@ -32,7 +43,7 @@
 				if (prefs.units) units = prefs.units;
 			} catch { /* ignore */ }
 		}
-		loadPhotos();
+		await loadPhotos();
 	});
 
 	async function loadPhotos() {
@@ -40,12 +51,6 @@
 			photos = await getAllPhotos();
 		} catch { /* IndexedDB not available in SSR */ }
 	}
-
-	const calendarWeeks = $derived(computeCalendarWeeks(mockWeekHistories));
-	const personalRecords = $derived(computePersonalRecords(mockWeekHistories));
-	const streak = $derived(computeStreak(mockWeekHistories));
-	const lifetimeStats = $derived(computeLifetimeStats(mockWeekHistories));
-	const prCount = $derived(computeTotalPRCount(mockWeekHistories));
 
 	function w(lbs: number): string {
 		return `${convertWeight(lbs, units).toLocaleString()} ${units}`;

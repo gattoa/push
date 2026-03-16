@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CalendarDay, CalendarWeek } from '$lib/mock/profile';
+	import type { CalendarDay, CalendarWeek } from '$lib/types';
 
 	const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 

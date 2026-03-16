@@ -1,25 +1,37 @@
-import type { WeeklyPlan, PlannedDay, PlannedExercise, PlannedSet, SetLog, WorkoutLog } from '$lib/types';
-import {
-	mockWeeklyPlan,
-	mockPlannedDays,
-	mockPlannedExercises,
-	mockPlannedSets,
-	mockSetLogs
-} from '$lib/mock/workouts';
+import type { WeeklyPlan, PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
+import { getCurrentWeek } from '$lib/services/workout';
 
 // Single source of truth for the current week's workout state.
 // Both Today page and Exercise Detail read/write this store.
-// Later: initialize from Supabase instead of mock data.
+// Initialized via initWorkoutStore() from the service layer.
 
-let plan = $state<WeeklyPlan>(mockWeeklyPlan);
-let days = $state<PlannedDay[]>(mockPlannedDays);
-let exercises = $state<PlannedExercise[]>(structuredClone(mockPlannedExercises));
-let plannedSets = $state<PlannedSet[]>(structuredClone(mockPlannedSets));
-let setLogs = $state<SetLog[]>(structuredClone(mockSetLogs));
+let plan = $state<WeeklyPlan | null>(null);
+let days = $state<PlannedDay[]>([]);
+let exercises = $state<PlannedExercise[]>([]);
+let plannedSets = $state<PlannedSet[]>([]);
+let setLogs = $state<SetLog[]>([]);
+let loaded = $state(false);
+
+// --- Initialization ---
+
+export async function initWorkoutStore(): Promise<void> {
+	if (loaded) return;
+	const data = await getCurrentWeek();
+	plan = data.plan;
+	days = data.days;
+	exercises = data.exercises;
+	plannedSets = data.plannedSets;
+	setLogs = data.setLogs;
+	loaded = true;
+}
+
+export function isLoaded(): boolean {
+	return loaded;
+}
 
 // --- Getters ---
 
-export function getPlan(): WeeklyPlan {
+export function getPlan(): WeeklyPlan | null {
 	return plan;
 }
 
