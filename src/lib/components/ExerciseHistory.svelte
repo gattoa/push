@@ -2,9 +2,10 @@
 	import type { ExerciseHistorySummary } from '$lib/mock/profile';
 	import { convertWeight } from '$lib/mock/profile';
 
-	let { history, units }: {
+	let { history, units, embedded = false }: {
 		history: ExerciseHistorySummary;
 		units: 'lbs' | 'kg';
+		embedded?: boolean;
 	} = $props();
 
 	const isBodyweight = $derived(
@@ -39,7 +40,9 @@
 </script>
 
 <section class="history">
-	<h2 class="history-title">History</h2>
+	{#if !embedded}
+		<h2 class="history-title">History</h2>
+	{/if}
 
 	<!-- Summary -->
 	<div class="card summary">

@@ -29,16 +29,46 @@
 		plannedExercise?.exercise_name ?? exercise?.name ?? exerciseHistory?.exerciseName ?? 'Exercise'
 	);
 
-	const bodyParts = $derived(
-		plannedExercise?.body_parts ?? exercise?.bodyParts ?? []
-	);
-
 	const equipments = $derived(
 		plannedExercise?.equipments ?? exercise?.equipments ?? []
 	);
 
-	let historyOpen = $state(false);
-	let infoOpen = $state(false);
+	const targetMuscles = $derived(exercise?.targetMuscles ?? []);
+	const secondaryMuscles = $derived(exercise?.secondaryMuscles ?? []);
+
+	// Tab state
+	type Tab = 'log' | 'guide' | 'history';
+	let activeTab = $state<Tab>('log');
+
+	const hasGuide = $derived(
+		exercise && (
+			exercise.videoUrl ||
+			exercise.imageUrl ||
+			exercise.overview ||
+			exercise.instructions.length > 0 ||
+			exercise.exerciseTips.length > 0
+		)
+	);
+
+	const hasHistory = $derived(
+		exerciseHistory && exerciseHistory.sessions.length > 0
+	);
+
+	const hasLog = $derived(
+		plannedExercise && plannedSets.length > 0
+	);
+
+	// Determine which tabs are available
+	const availableTabs = $derived((): { id: Tab; label: string }[] => {
+		const tabs: { id: Tab; label: string }[] = [];
+		if (hasLog) tabs.push({ id: 'log', label: 'Log' });
+		if (hasGuide) tabs.push({ id: 'guide', label: 'Guide' });
+		if (hasHistory) tabs.push({ id: 'history', label: 'History' });
+		return tabs;
+	});
+
+	// Show tab UI only if there's more than one tab
+	const showTabs = $derived(availableTabs().length > 1);
 </script>
 
 <div class="exercise-page">
@@ -46,6 +76,7 @@
 		<span class="back-arrow">&#8249;</span> Back
 	</button>
 
+	<!-- Identity: name → muscles → cue → equipment -->
 	<div class="exercise-identity">
 		<div class="name-row">
 			<h1>{displayName}</h1>
@@ -56,62 +87,63 @@
 			{/if}
 		</div>
 
-		{#if bodyParts.length > 0 || equipments.length > 0}
-			<div class="chips">
-				{#each bodyParts as part}
-					<span class="chip body-part">{part.toLowerCase()}</span>
+		{#if targetMuscles.length > 0 || secondaryMuscles.length > 0}
+			<div class="muscle-chips">
+				{#each targetMuscles as muscle}
+					<span class="chip target">{muscle}</span>
 				{/each}
-				{#each equipments as equip}
-					<span class="chip equipment">{equip}</span>
+				{#each secondaryMuscles as muscle}
+					<span class="chip secondary">{muscle}</span>
 				{/each}
 			</div>
 		{/if}
 
 		{#if plannedExercise?.cue}
-			<p class="cue">{plannedExercise.cue}</p>
+			<p class="cue">"{plannedExercise.cue}"</p>
+		{/if}
+
+		{#if equipments.length > 0}
+			<span class="equipment">{equipments.join(' · ')}</span>
 		{/if}
 	</div>
 
-	{#if plannedExercise && plannedSets.length > 0}
-		<section class="log-section">
-			<div class="sets-list">
-				{#each plannedSets as ps (ps.id)}
-					{@const log = setLogs.find(s => s.planned_set_id === ps.id)}
-					{#if log}
-						<SetRow plannedSet={ps} setLog={log} />
-					{/if}
-				{/each}
-			</div>
-			<QuickComplete {plannedSets} {setLogs} exerciseId={plannedExercise.id} />
-		</section>
+	<!-- Tabbed content -->
+	{#if showTabs}
+		<div class="tab-bar">
+			{#each availableTabs() as tab}
+				<button
+					class="tab-btn"
+					class:active={activeTab === tab.id}
+					onclick={() => activeTab = tab.id}
+				>
+					{tab.label}
+				</button>
+			{/each}
+		</div>
 	{/if}
 
-	{#if exerciseHistory && exerciseHistory.sessions.length > 0}
-		<button class="section-toggle" onclick={() => historyOpen = !historyOpen}>
-			<span class="section-toggle-label">History</span>
-			<span class="section-toggle-meta">{exerciseHistory.sessions.length} sessions</span>
-			<span class="section-toggle-arrow" class:open={historyOpen}>&#8250;</span>
-		</button>
-		{#if historyOpen}
-			<div class="section-content">
-				<ExerciseHistory history={exerciseHistory} {units} />
+	<div class="tab-content">
+		{#if activeTab === 'log' && hasLog && plannedExercise}
+			<div class="log-section">
+				<div class="log-header">
+					<span class="log-header-label set-col">SET</span>
+					<span class="log-header-label">WEIGHT</span>
+					<span class="log-header-label">REPS</span>
+				</div>
+				<div class="sets-list">
+					{#each plannedSets as ps (ps.id)}
+						{@const log = setLogs.find(s => s.planned_set_id === ps.id)}
+						{#if log}
+							<SetRow plannedSet={ps} setLog={log} />
+						{/if}
+					{/each}
+				</div>
+				<QuickComplete {plannedSets} {setLogs} exerciseId={plannedExercise.id} />
 			</div>
-		{/if}
-	{/if}
-
-	{#if exercise}
-		<button class="section-toggle" onclick={() => infoOpen = !infoOpen}>
-			<span class="section-toggle-label">Exercise Info</span>
-			<span class="section-toggle-arrow" class:open={infoOpen}>&#8250;</span>
-		</button>
-		{#if infoOpen}
-			<div class="section-content">
-				{#if exercise.overview}
-					<p class="overview">{exercise.overview}</p>
-				{/if}
-
+		{:else if activeTab === 'guide' && hasGuide && exercise}
+			<div class="guide-section">
 				{#if exercise.videoUrl}
-					<video controls width="100%" class="media">
+					<video controls width="100%" class="media" loop muted playsinline>
 						<source src={exercise.videoUrl} type="video/mp4" />
 						<track kind="captions" />
 					</video>
@@ -119,18 +151,8 @@
 					<img src={exercise.imageUrl} alt={exercise.name} class="media" />
 				{/if}
 
-				{#if exercise.targetMuscles.length > 0}
-					<div class="info-block">
-						<h3>Target Muscles</h3>
-						<p>{exercise.targetMuscles.join(', ')}</p>
-					</div>
-				{/if}
-
-				{#if exercise.secondaryMuscles.length > 0}
-					<div class="info-block">
-						<h3>Secondary Muscles</h3>
-						<p>{exercise.secondaryMuscles.join(', ')}</p>
-					</div>
+				{#if exercise.overview}
+					<p class="overview">{exercise.overview}</p>
 				{/if}
 
 				{#if exercise.instructions.length > 0}
@@ -154,20 +176,13 @@
 						</ul>
 					</div>
 				{/if}
-
-				{#if exercise.variations.length > 0}
-					<div class="info-block">
-						<h3>Variations</h3>
-						<ul>
-							{#each exercise.variations as variation}
-								<li>{variation}</li>
-							{/each}
-						</ul>
-					</div>
-				{/if}
 			</div>
+		{:else if activeTab === 'history' && hasHistory && exerciseHistory}
+			<ExerciseHistory history={exerciseHistory} {units} embedded />
 		{/if}
-	{:else if !exerciseHistory && !plannedExercise}
+	</div>
+
+	{#if !exercise && !exerciseHistory && !plannedExercise}
 		<p class="not-found">Exercise not found.</p>
 	{/if}
 </div>
@@ -245,7 +260,8 @@
 		color: #666;
 	}
 
-	.chips {
+	/* Muscle chips */
+	.muscle-chips {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.25rem;
@@ -258,79 +274,103 @@
 		border-radius: 100px;
 	}
 
-	.chip.body-part {
+	.chip.target {
 		background: #f2f2f2;
-		color: #777;
+		color: #555;
 	}
 
-	.chip.equipment {
-		background: #e8f0ff;
-		color: #5577aa;
+	.chip.secondary {
+		background: #f8f8f8;
+		color: #999;
 	}
 
+	/* Cue */
 	.cue {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #555;
+		margin: 0;
+	}
+
+	/* Equipment */
+	.equipment {
+		font-size: 0.75rem;
+		color: #999;
+		font-weight: 500;
+	}
+
+	/* Tab bar */
+	.tab-bar {
+		display: flex;
+		gap: 0;
+		border-bottom: 1px solid #f0f0f0;
+	}
+
+	.tab-btn {
+		flex: 1;
+		padding: 0.625rem 0;
+		background: none;
+		border: none;
+		border-bottom: 2px solid transparent;
+		cursor: pointer;
+		font-family: inherit;
 		font-size: 0.8125rem;
 		font-weight: 500;
-		color: #666;
-		font-style: italic;
-		margin: 0;
+		color: #999;
+		transition: all 0.15s;
+	}
+
+	.tab-btn.active {
+		color: #000;
+		font-weight: 600;
+		border-bottom-color: #000;
+	}
+
+	/* Tab content */
+	.tab-content {
+		min-height: 200px;
 	}
 
 	/* Log section */
 	.log-section {
 		display: flex;
 		flex-direction: column;
+	}
+
+	.log-header {
+		display: flex;
+		align-items: center;
+		padding: 0.375rem 0;
 		gap: 0.5rem;
+	}
+
+	.log-header-label {
+		font-size: 0.6875rem;
+		font-weight: 700;
+		color: #bbb;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.log-header-label.set-col {
+		min-width: 0.875rem;
 	}
 
 	.sets-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
 	}
 
-	/* Collapsible sections */
-	.section-toggle {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		width: 100%;
-		padding: 0.75rem 0;
-		background: none;
-		border: none;
-		border-top: 1px solid #f0f0f0;
-		cursor: pointer;
-		font-family: inherit;
-	}
-
-	.section-toggle-label {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: #000;
-	}
-
-	.section-toggle-meta {
-		font-size: 0.75rem;
-		color: #999;
-		font-weight: 500;
-	}
-
-	.section-toggle-arrow {
-		margin-left: auto;
-		font-size: 1rem;
-		color: #999;
-		transition: transform 0.2s ease;
-	}
-
-	.section-toggle-arrow.open {
-		transform: rotate(90deg);
-	}
-
-	.section-content {
+	/* Guide section */
+	.guide-section {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-		padding-bottom: 0.5rem;
+	}
+
+	.media {
+		width: 100%;
+		border-radius: 8px;
 	}
 
 	.overview {
@@ -338,11 +378,6 @@
 		color: #444;
 		line-height: 1.5;
 		margin: 0;
-	}
-
-	.media {
-		width: 100%;
-		border-radius: 8px;
 	}
 
 	.info-block {
@@ -356,13 +391,6 @@
 		font-weight: 700;
 		color: #000;
 		margin: 0;
-	}
-
-	.info-block p {
-		font-size: 0.8125rem;
-		color: #555;
-		margin: 0;
-		line-height: 1.5;
 	}
 
 	.info-block ol,

@@ -22,10 +22,11 @@
 <style>
 	.quick-complete {
 		width: 100%;
-		padding: 0.625rem;
-		border: 1px solid #e0e0e0;
-		border-radius: 10px;
-		background: #fafafa;
+		padding: 0.75rem 0;
+		border: none;
+		border-top: 1px solid #f0f0f0;
+		border-radius: 0;
+		background: none;
 		color: #000;
 		font-family: inherit;
 		font-size: 0.8125rem;
@@ -43,9 +44,7 @@
 	}
 
 	.quick-complete.done {
-		background: #000;
-		color: #fff;
-		border-color: #000;
+		color: #999;
 		opacity: 0.5;
 		cursor: default;
 	}

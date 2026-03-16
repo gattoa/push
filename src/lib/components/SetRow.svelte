@@ -10,311 +10,194 @@
 
 	const units = getPreferences().units;
 	let isDrop = $derived(plannedSet.set_type === 'drop');
-
 	let completed = $derived(setLog.completed);
 	let weight = $derived(setLog.actual_weight ?? plannedSet.target_weight ?? 0);
 	let reps = $derived(setLog.actual_reps ?? plannedSet.target_reps);
 
-	function toggle() {
-		toggleSet(setLog.id);
-	}
+	let weightChanged = $derived(
+		setLog.actual_weight !== null && setLog.actual_weight !== plannedSet.target_weight
+	);
+	let repsChanged = $derived(
+		setLog.actual_reps !== null && setLog.actual_reps !== plannedSet.target_reps
+	);
+
+	function toggle() { toggleSet(setLog.id); }
 
 	function onWeightChange(e: Event) {
 		updateSet(setLog.id, { actual_weight: Number((e.target as HTMLInputElement).value) });
 	}
-
 	function onRepsChange(e: Event) {
 		updateSet(setLog.id, { actual_reps: Number((e.target as HTMLInputElement).value) });
 	}
-
 	function onDropWeightChange(index: number, e: Event) {
 		updateDropLog(setLog.id, index, { actual_weight: Number((e.target as HTMLInputElement).value) });
 	}
-
 	function onDropRepsChange(index: number, e: Event) {
 		updateDropLog(setLog.id, index, { actual_reps: Number((e.target as HTMLInputElement).value) });
 	}
-
-	function weightLabel(w: number | null): string {
-		return w === null ? 'BW' : `${w}`;
-	}
+	function wl(w: number | null): string { return w === null ? 'BW' : `${w}`; }
 </script>
 
-<div class="set-card" class:completed>
-	<div class="set-header">
-		<div class="set-id">
-			<span class="set-number">Set {plannedSet.set_number}</span>
-			{#if isDrop}
-				<span class="set-type">drop</span>
-			{:else if plannedSet.set_type === 'warmup'}
-				<span class="set-type">warmup</span>
-			{/if}
-		</div>
-		<button class="toggle-btn" class:done={completed} onclick={toggle}>
-			{#if completed}
-				<span class="check-icon">&#10003;</span>
-			{:else}
-				<span class="circle-icon"></span>
-			{/if}
-		</button>
+<div class="row" class:completed class:warmup={plannedSet.set_type === 'warmup'}>
+	<span class="set-num">{plannedSet.set_number}</span>
+	{#if plannedSet.set_type === 'warmup'}<span class="tag">warm</span>{/if}
+
+	<div class="values">
+		{#if plannedSet.target_weight === null}
+			<span class="bw">BW</span>
+		{:else}
+			<input type="number" value={weight} onchange={onWeightChange} min="0"
+				class="val" class:changed={weightChanged} />
+		{/if}
+		<span class="x">&times;</span>
+		<input type="number" value={reps} onchange={onRepsChange} min="0"
+			class="val reps-val" class:changed={repsChanged} />
+		{#if weightChanged || repsChanged}
+			<span class="was">{wl(plannedSet.target_weight)}&times;{plannedSet.target_reps}</span>
+		{/if}
 	</div>
 
-	<div class="set-target">
-		Target: {weightLabel(plannedSet.target_weight)}{plannedSet.target_weight !== null ? ` ${units}` : ''} &times; {plannedSet.target_reps}
-	</div>
-
-	<div class="set-actual">
-		<label class="input-group">
-			<input
-				type="number"
-				value={weight}
-				onchange={onWeightChange}
-				min="0"
-				disabled={plannedSet.target_weight === null}
-				class="num-input weight-input"
-			/>
-			<span class="input-label">{plannedSet.target_weight === null ? 'BW' : units}</span>
-		</label>
-		<span class="times">&times;</span>
-		<label class="input-group">
-			<input
-				type="number"
-				value={reps}
-				onchange={onRepsChange}
-				min="0"
-				class="num-input reps-input"
-			/>
-			<span class="input-label">reps</span>
-		</label>
-	</div>
-
-	{#if isDrop && plannedSet.drops}
-		<div class="drops">
-			{#each plannedSet.drops as drop, i}
-				<div class="drop-row">
-					<span class="drop-arrow">&#8595;</span>
-					<div class="drop-target">
-						{weightLabel(drop.target_weight)}{drop.target_weight !== null ? ` ${units}` : ''} &times; {drop.target_reps}
-					</div>
-					<div class="drop-actual">
-						<label class="input-group">
-							<input
-								type="number"
-								value={setLog.drop_logs?.[i]?.actual_weight ?? drop.target_weight ?? 0}
-								onchange={(e) => onDropWeightChange(i, e)}
-								min="0"
-								disabled={drop.target_weight === null}
-								class="num-input weight-input sm"
-							/>
-							<span class="input-label">{drop.target_weight === null ? 'BW' : units}</span>
-						</label>
-						<span class="times">&times;</span>
-						<label class="input-group">
-							<input
-								type="number"
-								value={setLog.drop_logs?.[i]?.actual_reps ?? drop.target_reps}
-								onchange={(e) => onDropRepsChange(i, e)}
-								min="0"
-								class="num-input reps-input sm"
-							/>
-							<span class="input-label">reps</span>
-						</label>
-					</div>
-				</div>
-			{/each}
-		</div>
-	{/if}
+	<button class="tog" class:done={completed} onclick={toggle}>
+		{#if completed}<span class="ck">&#10003;</span>{/if}
+	</button>
 </div>
 
+{#if isDrop && plannedSet.drops}
+	{#each plannedSet.drops as drop, i}
+		{@const dw = setLog.drop_logs?.[i]?.actual_weight ?? drop.target_weight ?? 0}
+		{@const dr = setLog.drop_logs?.[i]?.actual_reps ?? drop.target_reps}
+		<div class="row drop" class:completed>
+			<span class="tag">drop</span>
+			<div class="values">
+				{#if drop.target_weight === null}
+					<span class="bw">BW</span>
+				{:else}
+					<input type="number" value={dw} onchange={(e) => onDropWeightChange(i, e)} min="0" class="val sm" />
+				{/if}
+				<span class="x">&times;</span>
+				<input type="number" value={dr} onchange={(e) => onDropRepsChange(i, e)} min="0" class="val reps-val sm" />
+			</div>
+			<span class="tog-spacer"></span>
+		</div>
+	{/each}
+{/if}
+
 <style>
-	.set-card {
-		background: #fff;
-		border: 1px solid #e8e8e8;
-		border-radius: 12px;
-		padding: 0.75rem 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.375rem;
-		transition: opacity 0.2s ease;
-	}
-
-	.set-card.completed {
-		opacity: 0.5;
-	}
-
-	.set-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-
-	.set-id {
+	.row {
 		display: flex;
 		align-items: center;
-		gap: 0.375rem;
+		gap: 0.5rem;
+		padding: 0.4rem 0;
+		border-bottom: 1px solid #f0f0f0;
+		transition: opacity 0.15s;
 	}
+	.row:last-child { border-bottom: none; }
+	.row.completed { opacity: 0.4; }
+	.row.drop { padding-left: 0; }
+	.row.warmup { background: #fafafa; }
 
-	.set-number {
-		font-size: 0.8125rem;
+	.set-num {
+		font-size: 0.875rem;
 		font-weight: 700;
 		color: #000;
+		min-width: 0.875rem;
 	}
-
-	.set-type {
-		font-size: 0.625rem;
+	.tag {
+		font-size: 0.5625rem;
 		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #999;
-		background: #f2f2f2;
-		padding: 0.125rem 0.375rem;
-		border-radius: 4px;
+		letter-spacing: 0.03em;
+		color: #aaa;
+		min-width: 0.875rem;
 	}
 
-	.toggle-btn {
-		width: 32px;
-		height: 32px;
-		border-radius: 50%;
+	.values {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.val {
+		width: 42px;
+		padding: 0.1875rem 0;
 		border: none;
+		border-bottom: 1.5px solid transparent;
+		font-family: inherit;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #000;
+		text-align: center;
+		background: none;
+		appearance: textfield;
+		-moz-appearance: textfield;
+	}
+	.val::-webkit-inner-spin-button,
+	.val::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+	.val:focus {
+		outline: none;
+		border-bottom-color: #000;
+	}
+	.val.changed {
+		color: #0066cc;
+	}
+	.val.sm {
+		width: 36px;
+		font-size: 0.8125rem;
+	}
+	.reps-val { width: 32px; }
+	.reps-val.sm { width: 28px; }
+
+	.bw {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #999;
+		width: 42px;
+		text-align: center;
+	}
+
+	.x {
+		font-size: 0.6875rem;
+		color: #ccc;
+		font-weight: 500;
+	}
+
+	.was {
+		font-size: 0.5625rem;
+		color: #bbb;
+		font-weight: 500;
+		white-space: nowrap;
+		margin-left: 0.125rem;
+	}
+
+	.tog {
+		margin-left: auto;
+		width: 26px;
+		height: 26px;
+		min-width: 26px;
+		border-radius: 50%;
+		border: 1.5px solid #ddd;
+		background: none;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-family: inherit;
+		padding: 0;
 		transition: all 0.15s;
-		background: #f2f2f2;
-		color: #999;
 	}
-
-	.toggle-btn:active {
-		transform: scale(0.9);
-	}
-
-	.toggle-btn.done {
+	.tog:active { transform: scale(0.9); }
+	.tog.done {
 		background: #000;
+		border-color: #000;
 		color: #fff;
 	}
+	.ck { font-size: 0.625rem; font-weight: 700; }
 
-	.check-icon {
-		font-size: 0.8125rem;
-		font-weight: 700;
-	}
-
-	.circle-icon {
-		width: 12px;
-		height: 12px;
-		border-radius: 50%;
-		border: 2px solid #ccc;
-	}
-
-	.set-target {
-		font-size: 0.6875rem;
-		color: #999;
-		font-weight: 500;
-	}
-
-	.set-actual {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-		margin-top: 0.125rem;
-	}
-
-	.input-group {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
-	.num-input {
-		width: 56px;
-		padding: 0.375rem 0.5rem;
-		border: 1px solid #e0e0e0;
-		border-radius: 8px;
-		font-family: inherit;
-		font-size: 0.9375rem;
-		font-weight: 600;
-		color: #000;
-		text-align: center;
-		background: #fafafa;
-		appearance: textfield;
-		-moz-appearance: textfield;
-	}
-
-	.num-input::-webkit-inner-spin-button,
-	.num-input::-webkit-outer-spin-button {
-		-webkit-appearance: none;
-		margin: 0;
-	}
-
-	.num-input:focus {
-		outline: none;
-		border-color: #000;
-		background: #fff;
-	}
-
-	.num-input:disabled {
-		background: #f5f5f5;
-		color: #999;
-	}
-
-	.num-input.sm {
-		width: 48px;
-		font-size: 0.8125rem;
-		padding: 0.25rem 0.375rem;
-	}
-
-	.reps-input {
-		width: 44px;
-	}
-
-	.reps-input.sm {
-		width: 40px;
-	}
-
-	.input-label {
-		font-size: 0.6875rem;
-		color: #999;
-		font-weight: 500;
-	}
-
-	.times {
-		font-size: 0.75rem;
-		color: #ccc;
-		font-weight: 600;
-	}
-
-	.drops {
-		display: flex;
-		flex-direction: column;
-		gap: 0.375rem;
-		margin-top: 0.25rem;
-		padding-top: 0.375rem;
-		border-top: 1px dashed #e8e8e8;
-	}
-
-	.drop-row {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.drop-arrow {
-		font-size: 0.75rem;
-		color: #ccc;
-		font-weight: 700;
-	}
-
-	.drop-target {
-		font-size: 0.625rem;
-		color: #bbb;
-		font-weight: 500;
-		min-width: 60px;
-	}
-
-	.drop-actual {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
+	.tog-spacer {
+		margin-left: auto;
+		width: 26px;
+		min-width: 26px;
 	}
 </style>

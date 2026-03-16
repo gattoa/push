@@ -6,7 +6,7 @@
 |-------|-------|
 | **Page** | Today (`/`) — rest day state + post-workout completion state |
 | **Status** | Design |
-| **Traces to** | [Product Brief](./product-brief.md) — Weekly Cycle, Daily Workout |
+| **Traces to** | [Product Brief](../product-brief.md) — Weekly Cycle, Daily Workout |
 | **Related** | [Today View Design](./today-design.md) — training day interactions |
 
 ---

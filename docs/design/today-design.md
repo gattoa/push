@@ -6,7 +6,7 @@
 |-------|-------|
 | **Page** | Today (`/`) |
 | **Status** | Design |
-| **Traces to** | [Product Brief](./product-brief.md) — Daily Workout, In-Gym Logging, Equipment Swaps, Historical Data, Check-in, Assignment |
+| **Traces to** | [Product Brief](../product-brief.md) — Daily Workout, In-Gym Logging, Equipment Swaps, Historical Data, Check-in, Assignment |
 | **Research refs** | [[ISSUE-6-F004]] 2-3 tap quick-complete, [[ISSUE-6-F005]] no app solves dual-path logging, [[ISSUE-6-I003]] contextual AI swap, [[ISSUE-6-F014]] gym accessibility |
 
 ---
