@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { OnboardingData, ExperienceLevel, Gender, TrainingGoal, InjuryArea } from '$lib/types';
+	import type { OnboardingData, ExperienceLevel, Gender, TrainingGoal, InjuryArea, SessionDuration, Equipment } from '$lib/types';
 	import SelectionCard from './SelectionCard.svelte';
 
 	let { data = $bindable(), ongenerate, loading = false } = $props<{
@@ -33,6 +33,11 @@
 		general_fitness: 'General Fitness'
 	};
 	const injuryLabels: Record<string, string> = { shoulder: 'Shoulder', back: 'Back', knee: 'Knee' };
+	const durationLabels: Record<number, string> = { 30: '30 min', 45: '45 min', 60: '60 min', 75: '75 min', 90: '90 min' };
+	const equipmentLabels: Record<string, string> = {
+		bodyweight: 'Bodyweight', dumbbells: 'Dumbbells', barbell: 'Barbell & Rack',
+		cable_machine: 'Cable Machine', full_gym: 'Full Gym'
+	};
 
 	const experienceOptions: { value: ExperienceLevel; label: string }[] = [
 		{ value: 'beginner', label: 'Beginner' },
@@ -47,6 +52,16 @@
 	];
 
 	const dayOptions = [3, 4, 5, 6];
+
+	const durationOptions: SessionDuration[] = [30, 45, 60, 75, 90];
+
+	const equipmentOptions: { value: Equipment; label: string }[] = [
+		{ value: 'bodyweight', label: 'Bodyweight' },
+		{ value: 'dumbbells', label: 'Dumbbells' },
+		{ value: 'barbell', label: 'Barbell & Rack' },
+		{ value: 'cable_machine', label: 'Cable Machine' },
+		{ value: 'full_gym', label: 'Full Gym' }
+	];
 
 	const goalOptions: { value: TrainingGoal; label: string }[] = [
 		{ value: 'build_muscle', label: 'Build Muscle' },
@@ -66,6 +81,27 @@
 			data.goals = data.goals.filter((g: TrainingGoal) => g !== goal);
 		} else {
 			data.goals = [...data.goals, goal];
+		}
+	}
+
+	function toggleEquipment(eq: Equipment) {
+		if (eq === 'full_gym') {
+			if (data.equipment.includes('full_gym')) {
+				data.equipment = [];
+			} else {
+				data.equipment = ['bodyweight', 'dumbbells', 'barbell', 'cable_machine', 'full_gym'];
+			}
+			return;
+		}
+		if (data.equipment.includes(eq)) {
+			data.equipment = data.equipment.filter((v: Equipment) => v !== eq && v !== 'full_gym');
+		} else {
+			const next = [...data.equipment.filter((v: Equipment) => v !== 'full_gym'), eq];
+			if (['bodyweight', 'dumbbells', 'barbell', 'cable_machine'].every(e => next.includes(e as Equipment))) {
+				data.equipment = [...next, 'full_gym'];
+			} else {
+				data.equipment = next;
+			}
 		}
 	}
 
@@ -144,6 +180,54 @@
 								label="{d} days"
 								selected={data.trainingDays === d}
 								onclick={() => (data.trainingDays = d)}
+							/>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Session Duration -->
+		<div class="card" class:expanded={editing === 'duration'}>
+			<button class="card-toggle card-toggle-inline" onclick={() => toggle('duration')}>
+				<div class="card-summary-inline">
+					<span class="card-label">Session length</span>
+					<span class="card-value">{data.sessionDuration ? durationLabels[data.sessionDuration] : '—'}</span>
+				</div>
+				<span class="edit">{editing === 'duration' ? 'Done' : 'Edit'}</span>
+			</button>
+			{#if editing === 'duration'}
+				<div class="inline-edit">
+					<div class="edit-options-row">
+						{#each durationOptions as d}
+							<SelectionCard
+								label="{d} min"
+								selected={data.sessionDuration === d}
+								onclick={() => (data.sessionDuration = d)}
+							/>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Equipment -->
+		<div class="card" class:expanded={editing === 'equipment'}>
+			<button class="card-toggle card-toggle-inline" onclick={() => toggle('equipment')}>
+				<div class="card-summary-inline">
+					<span class="card-label">Equipment</span>
+					<span class="card-value">{data.equipment.length > 0 ? (data.equipment.includes('full_gym') ? 'Full Gym' : data.equipment.map((e: Equipment) => equipmentLabels[e]).join(', ')) : '—'}</span>
+				</div>
+				<span class="edit">{editing === 'equipment' ? 'Done' : 'Edit'}</span>
+			</button>
+			{#if editing === 'equipment'}
+				<div class="inline-edit">
+					<div class="edit-options-row edit-options-2x2">
+						{#each equipmentOptions as opt}
+							<SelectionCard
+								label={opt.label}
+								selected={data.equipment.includes(opt.value)}
+								onclick={() => toggleEquipment(opt.value)}
 							/>
 						{/each}
 					</div>

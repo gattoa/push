@@ -99,12 +99,16 @@ export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 export type TrainingGoal = 'build_muscle' | 'lose_fat' | 'get_stronger' | 'general_fitness';
 export type InjuryArea = 'shoulder' | 'back' | 'knee';
 export type Gender = 'male' | 'female' | 'prefer_not_to_say';
+export type SessionDuration = 30 | 45 | 60 | 75 | 90;
+export type Equipment = 'bodyweight' | 'dumbbells' | 'barbell' | 'cable_machine' | 'full_gym';
 
 export interface OnboardingData {
 	dateOfBirth: string | null; // ISO date string e.g. "1998-03-14"
 	gender: Gender | null;
 	experienceLevel: ExperienceLevel | null;
 	trainingDays: number | null; // 3, 4, 5, or 6
+	sessionDuration: SessionDuration | null; // minutes per session
+	equipment: Equipment[]; // what the user has access to
 	goals: TrainingGoal[];
 	injuries: InjuryArea[]; // empty = no injuries
 }

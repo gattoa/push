@@ -12,6 +12,8 @@
 		gender: null,
 		experienceLevel: null,
 		trainingDays: null,
+		sessionDuration: null,
+		equipment: [],
 		goals: [],
 		injuries: []
 	});

@@ -4,10 +4,13 @@
 	import { generatePlan } from '$lib/services/plan-generator';
 	import { saveGeneratedPlan } from '$lib/services/workout';
 	import ProgressBar from '$lib/components/onboarding/ProgressBar.svelte';
-	import StepAboutYou from '$lib/components/onboarding/StepAboutYou.svelte';
+	import StepExperience from '$lib/components/onboarding/StepExperience.svelte';
 	import StepTrainingDays from '$lib/components/onboarding/StepTrainingDays.svelte';
+	import StepSessionDuration from '$lib/components/onboarding/StepSessionDuration.svelte';
+	import StepEquipment from '$lib/components/onboarding/StepEquipment.svelte';
 	import StepGoals from '$lib/components/onboarding/StepGoals.svelte';
 	import StepInjuries from '$lib/components/onboarding/StepInjuries.svelte';
+	import StepDemographics from '$lib/components/onboarding/StepDemographics.svelte';
 	import StepReview from '$lib/components/onboarding/StepReview.svelte';
 
 	let currentStep = $state(0);
@@ -17,23 +20,33 @@
 		gender: null,
 		experienceLevel: null,
 		trainingDays: null,
+		sessionDuration: null,
+		equipment: [],
 		goals: [],
 		injuries: []
 	});
 
-	const TOTAL_STEPS = 4;
+	// 0: Experience, 1: Training Days, 2: Session Duration, 3: Equipment,
+	// 4: Goals, 5: Injuries, 6: Demographics, 7: Review
+	const TOTAL_STEPS = 7;
 	const REVIEW_STEP = TOTAL_STEPS;
 
 	let canContinue = $derived(
 		currentStep === 0
-			? data.dateOfBirth !== null && data.gender !== null && data.experienceLevel !== null
+			? data.experienceLevel !== null
 			: currentStep === 1
 				? data.trainingDays !== null
 				: currentStep === 2
-					? data.goals.length > 0
+					? data.sessionDuration !== null
 					: currentStep === 3
-						? true // injuries step is always valid
-						: false
+						? data.equipment.length > 0
+						: currentStep === 4
+							? data.goals.length > 0
+							: currentStep === 5
+								? true // injuries always valid
+								: currentStep === 6
+									? data.dateOfBirth !== null && data.gender !== null
+									: false
 	);
 
 	function next() {
@@ -76,13 +89,19 @@
 	<div class="content">
 		{#key currentStep}
 			{#if currentStep === 0}
-				<StepAboutYou bind:dateOfBirth={data.dateOfBirth} bind:gender={data.gender} bind:experienceLevel={data.experienceLevel} />
+				<StepExperience bind:value={data.experienceLevel} />
 			{:else if currentStep === 1}
 				<StepTrainingDays bind:value={data.trainingDays} />
 			{:else if currentStep === 2}
-				<StepGoals bind:values={data.goals} />
+				<StepSessionDuration bind:value={data.sessionDuration} />
 			{:else if currentStep === 3}
+				<StepEquipment bind:values={data.equipment} />
+			{:else if currentStep === 4}
+				<StepGoals bind:values={data.goals} />
+			{:else if currentStep === 5}
 				<StepInjuries bind:values={data.injuries} />
+			{:else if currentStep === 6}
+				<StepDemographics bind:dateOfBirth={data.dateOfBirth} bind:gender={data.gender} />
 			{:else if currentStep === REVIEW_STEP}
 				<StepReview bind:data ongenerate={generate} loading={generating} />
 			{/if}

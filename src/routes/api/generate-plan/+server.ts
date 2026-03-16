@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { anthropic } from '$lib/api/anthropic';
 import exerciseCatalog from '$lib/data/exercises.json';
-import type { OnboardingData, GeneratedPlan, PlannedDay, PlannedExercise, PlannedSet, InjuryArea } from '$lib/types';
+import type { OnboardingData, GeneratedPlan, PlannedDay, PlannedExercise, PlannedSet, InjuryArea, Equipment } from '$lib/types';
 
 // Hard-coded safety constraints (research: must not be soft suggestions)
 const INJURY_EXCLUSIONS: Record<InjuryArea, string[]> = {
@@ -26,7 +26,27 @@ interface CatalogExercise {
 	equipments: string[];
 }
 
-function getAvailableExercises(injuries: InjuryArea[]): CatalogExercise[] {
+// Map user equipment selections to ExerciseDB equipment names
+const EQUIPMENT_MAP: Record<Equipment, string[]> = {
+	bodyweight: ['BODY WEIGHT'],
+	dumbbells: ['DUMBBELL'],
+	barbell: ['BARBELL'],
+	cable_machine: ['CABLE'],
+	full_gym: ['BODY WEIGHT', 'DUMBBELL', 'BARBELL', 'CABLE']
+};
+
+function getAllowedEquipment(userEquipment: Equipment[]): Set<string> {
+	// Bodyweight is always available
+	const allowed = new Set<string>(['BODY WEIGHT']);
+	for (const eq of userEquipment) {
+		for (const mapped of EQUIPMENT_MAP[eq] ?? []) {
+			allowed.add(mapped);
+		}
+	}
+	return allowed;
+}
+
+function getAvailableExercises(injuries: InjuryArea[], equipment: Equipment[]): CatalogExercise[] {
 	const excluded = new Set<string>();
 	for (const injury of injuries) {
 		for (const name of INJURY_EXCLUSIONS[injury] ?? []) {
@@ -34,8 +54,11 @@ function getAvailableExercises(injuries: InjuryArea[]): CatalogExercise[] {
 		}
 	}
 
+	const allowedEquipment = getAllowedEquipment(equipment);
+
 	return (exerciseCatalog as CatalogExercise[])
 		.filter((e) => !excluded.has(e.name))
+		.filter((e) => e.equipments.every(eq => allowedEquipment.has(eq)))
 		.map((e) => ({
 			exerciseId: e.exerciseId,
 			name: e.name,
@@ -76,6 +99,13 @@ function buildSystemPrompt(data: OnboardingData, exercises: CatalogExercise[]): 
 
 	const pattern = SPLIT_PATTERNS[data.trainingDays ?? 3] ?? SPLIT_PATTERNS[3];
 
+	const sessionMin = data.sessionDuration ?? 60;
+	const equipmentDesc = data.equipment.length > 0
+		? data.equipment.includes('full_gym')
+			? 'Full gym (all equipment available)'
+			: data.equipment.join(', ')
+		: 'bodyweight only';
+
 	return `You are an expert strength and conditioning coach creating a Week 1 training plan.
 
 ## User Profile
@@ -83,6 +113,8 @@ function buildSystemPrompt(data: OnboardingData, exercises: CatalogExercise[]): 
 - Age: ${data.dateOfBirth ? calculateAge(data.dateOfBirth) : 'unknown'}
 - Gender: ${data.gender ?? 'prefer_not_to_say'}
 - Training days per week: ${data.trainingDays ?? 3}
+- Session duration: ${sessionMin} minutes (including warmup and rest between sets)
+- Equipment: ${equipmentDesc}
 - Goals: ${data.goals.length > 0 ? data.goals.join(', ') : 'general_fitness'}
 - Injuries: ${data.injuries.length > 0 ? data.injuries.join(', ') : 'none'}
 
@@ -91,6 +123,7 @@ ${pattern.map((label, i) => `  Day ${i}: ${label}`).join('\n')}
 
 ## Available Exercise Pool
 You MUST ONLY select exercises from this catalog. Do NOT invent exercises.
+These exercises have already been filtered by the user's available equipment and injury restrictions.
 
 ### Push Exercises
 ${formatPool(pushExercises)}
@@ -104,20 +137,36 @@ ${formatPool(legExercises)}
 ${coreExercises.length > 0 ? `### Core Exercises\n${formatPool(coreExercises)}` : ''}
 
 ## Programming Rules
-1. Select 3 exercises per training day from the matching pool (Push exercises for Push days, Pull for Pull, Legs for Legs).
-2. Each exercise gets 3 sets (beginners: 2 sets, advanced: 4 sets).
-3. Rep ranges by goal:
-   - build_muscle: 8-12 reps
-   - get_stronger: 4-6 reps
-   - lose_fat: 12-15 reps
-   - general_fitness: 8-12 reps
-4. Weight prescription for Week 1:
-   - Bodyweight exercises (equipment = "BODY WEIGHT"): set target_weight to null.
-   - Weighted exercises: prescribe conservative starting weights in lbs. For beginners, use very light weights. For intermediate, use moderate weights. For advanced, use challenging but safe weights. Round all weights to the nearest 5 lbs.
-5. Use pyramid or reverse pyramid set schemes where reps decrease and weight increases across sets.
-6. If a day appears twice (e.g., two Push days), select DIFFERENT exercises for the second occurrence to ensure variety.
-7. Prioritize compound movements first, isolation movements last within each day.
-8. Rest days have no exercises.
+
+### Exercise Count (based on session duration)
+Use the session duration to determine how many exercises per training day. Account for ~5 min warmup, ~90s rest between sets (longer for compound lifts), and ~3-4 min per set including rest.
+- 30 min session: 2-3 exercises, fewer sets
+- 45 min session: 3 exercises
+- 60 min session: 3-4 exercises
+- 75 min session: 4-5 exercises
+- 90 min session: 5-6 exercises
+
+### Sets Per Exercise
+- Beginners: 2 sets per exercise
+- Intermediate: 3 sets per exercise
+- Advanced: 3-4 sets per exercise
+
+### Rep Ranges (by primary goal)
+- build_muscle: 8-12 reps
+- get_stronger: 4-6 reps
+- lose_fat: 12-15 reps
+- general_fitness: 8-12 reps
+
+### Weight Prescription (Week 1)
+- Bodyweight exercises (equipment = "BODY WEIGHT"): set target_weight to null.
+- Weighted exercises: prescribe conservative starting weights in lbs. For beginners, use very light weights. For intermediate, use moderate weights. For advanced, use challenging but safe weights. Round all weights to the nearest 5 lbs.
+
+### Exercise Selection
+1. Select exercises from the matching pool (Push exercises for Push days, Pull for Pull, Legs for Legs).
+2. Use pyramid or reverse pyramid set schemes where reps decrease and weight increases across sets.
+3. If a day appears twice (e.g., two Push days), select DIFFERENT exercises for the second occurrence to ensure variety.
+4. Prioritize compound movements first, isolation movements last within each day.
+5. Rest days have no exercises.
 
 ## Output Format
 Call the generate_plan tool with the complete plan. Use these ID formats exactly:
@@ -247,12 +296,12 @@ function validatePlan(plan: GeneratedPlan, data: OnboardingData, availableExerci
 export async function POST({ request }) {
 	try {
 		const data: OnboardingData = await request.json();
-		const availableExercises = getAvailableExercises(data.injuries);
+		const availableExercises = getAvailableExercises(data.injuries, data.equipment ?? []);
 		const systemPrompt = buildSystemPrompt(data, availableExercises);
 
 		const response = await anthropic.messages.create({
 			model: 'claude-sonnet-4-20250514',
-			max_tokens: 4096,
+			max_tokens: 8192,
 			system: systemPrompt,
 			messages: [
 				{
@@ -270,7 +319,17 @@ export async function POST({ request }) {
 			return json({ success: false, error: 'Claude did not return a plan' }, { status: 500 });
 		}
 
-		const plan = toolBlock.input as GeneratedPlan;
+		const raw = toolBlock.input as Record<string, unknown>;
+		const plan: GeneratedPlan = {
+			days: Array.isArray(raw.days) ? raw.days as GeneratedPlan['days'] : [],
+			exercises: Array.isArray(raw.exercises) ? raw.exercises as GeneratedPlan['exercises'] : [],
+			sets: Array.isArray(raw.sets) ? raw.sets as GeneratedPlan['sets'] : [],
+			source: 'ai'
+		};
+
+		if (plan.days.length === 0 || plan.exercises.length === 0 || plan.sets.length === 0) {
+			return json({ success: false, error: 'Claude returned an incomplete plan' }, { status: 500 });
+		}
 
 		// Validate
 		const errors = validatePlan(plan, data, availableExercises);

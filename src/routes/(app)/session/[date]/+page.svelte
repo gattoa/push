@@ -7,9 +7,14 @@
 	import { computeCalendarWeeks, convertWeight } from '$lib/utils/workout-stats';
 
 	let units: 'lbs' | 'kg' = $state('lbs');
+	let planSource: string | null = $state(null);
 	let calendarWeeks = $state(computeCalendarWeeks([]));
 
 	onMount(() => {
+		try {
+			const raw = localStorage.getItem('push_generated_plan');
+			if (raw) planSource = JSON.parse(raw).source ?? null;
+		} catch {}
 		const histories = getWeekHistories();
 		calendarWeeks = computeCalendarWeeks(histories);
 		const rawPrefs = localStorage.getItem('push_preferences');
@@ -89,6 +94,9 @@
 				<h1>{dayData.label}</h1>
 			{:else}
 				<h1>Rest Day</h1>
+			{/if}
+			{#if planSource}
+				<span class="source-badge" class:ai={planSource === 'ai'}>{planSource === 'ai' ? 'AI Plan' : 'Mock Plan'}</span>
 			{/if}
 		</div>
 
@@ -178,6 +186,24 @@
 		font-size: 1.5rem;
 		font-weight: 800;
 		margin: 0;
+	}
+
+	.source-badge {
+		display: inline-block;
+		font-size: 0.625rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.125rem 0.5rem;
+		border-radius: 100px;
+		background: #fee2e2;
+		color: #b91c1c;
+		margin-top: 0.25rem;
+	}
+
+	.source-badge.ai {
+		background: #dcfce7;
+		color: #15803d;
 	}
 
 	/* Groups */
