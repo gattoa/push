@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type {
-		OnboardingData, ExperienceLevel, TrainingGoal, InjuryArea,
+		OnboardingData, ExperienceLevel, TrainingGoal, InjuryArea, Equipment,
 		AppPreferences, WeightUnit, ReviewDay, RestTimerSeconds
 	} from '$lib/types';
 	import BottomSheet from '$lib/components/BottomSheet.svelte';
@@ -29,6 +29,8 @@
 		injuries: false,
 		experience: false,
 		days: false,
+		sessionDuration: false,
+		equipment: false,
 		goals: false,
 		reviewDay: false,
 		restTimer: false
@@ -98,6 +100,21 @@
 			: `${prefs.restTimerDefault}s`
 	);
 
+	const equipmentLabels: Record<string, string> = {
+		bodyweight: 'Bodyweight', dumbbells: 'Dumbbells', barbell: 'Barbell & Rack',
+		cable_machine: 'Cable Machine', full_gym: 'Full Gym'
+	};
+	let sessionDurationDisplay = $derived(
+		data.sessionDuration ? `${data.sessionDuration} min` : 'Not set'
+	);
+	let equipmentDisplay = $derived(
+		data.equipment.length > 0
+			? data.equipment.includes('full_gym')
+				? 'Full Gym'
+				: data.equipment.map((e: Equipment) => equipmentLabels[e]).join(', ')
+			: 'Not set'
+	);
+
 	// Option sets for bottom sheets
 	const ageOptions: { value: string | number; label: string }[] = [
 		{ value: 'under_35', label: '18–34' },
@@ -139,6 +156,20 @@
 		{ value: 120, label: '2 minutes' },
 		{ value: 180, label: '3 minutes' }
 	];
+	const sessionDurationSheetOptions: { value: string | number; label: string }[] = [
+		{ value: 30, label: '30 min' },
+		{ value: 45, label: '45 min' },
+		{ value: 60, label: '60 min' },
+		{ value: 75, label: '75 min' },
+		{ value: 90, label: '90 min' }
+	];
+	const equipmentSheetOptions: { value: string | number; label: string }[] = [
+		{ value: 'bodyweight', label: 'Bodyweight Only' },
+		{ value: 'dumbbells', label: 'Dumbbells' },
+		{ value: 'barbell', label: 'Barbell & Rack' },
+		{ value: 'cable_machine', label: 'Cable Machine' },
+		{ value: 'full_gym', label: 'Full Gym' }
+	];
 	const unitOptions: { value: string; label: string }[] = [
 		{ value: 'lbs', label: 'lbs' },
 		{ value: 'kg', label: 'kg' }
@@ -167,7 +198,15 @@
 </script>
 
 <div class="settings">
-	<h1>Settings</h1>
+	<div class="settings-header">
+		<button class="back-btn" aria-label="Back" onclick={() => history.back()}>
+			<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+				<path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+		</button>
+		<h1>Settings</h1>
+		<div class="header-spacer"></div>
+	</div>
 
 	<!-- Email placeholder -->
 	<div class="card">
@@ -209,6 +248,20 @@
 			<button class="row" onclick={() => sheetOpen.days = true}>
 				<span class="row-label">Days per week</span>
 				<span class="row-value">{daysDisplay}</span>
+			</button>
+
+			<div class="divider"></div>
+
+			<button class="row" onclick={() => sheetOpen.sessionDuration = true}>
+				<span class="row-label">Session duration</span>
+				<span class="row-value">{sessionDurationDisplay}</span>
+			</button>
+
+			<div class="divider"></div>
+
+			<button class="row" onclick={() => sheetOpen.equipment = true}>
+				<span class="row-label">Equipment</span>
+				<span class="row-value truncate">{equipmentDisplay}</span>
 			</button>
 
 			<div class="divider"></div>
@@ -331,6 +384,31 @@
 	onchange={markChanged}
 />
 
+<BottomSheet
+	bind:open={sheetOpen.sessionDuration}
+	title="Session Duration"
+	options={sessionDurationSheetOptions}
+	bind:value={data.sessionDuration}
+	onchange={markChanged}
+/>
+
+<BottomSheet
+	bind:open={sheetOpen.equipment}
+	title="Equipment"
+	options={equipmentSheetOptions}
+	bind:values={data.equipment}
+	multiSelect={true}
+	onchange={() => {
+		// Handle full_gym logic
+		if (data.equipment.includes('full_gym')) {
+			data.equipment = ['bodyweight', 'dumbbells', 'barbell', 'cable_machine', 'full_gym'];
+		} else if (['bodyweight', 'dumbbells', 'barbell', 'cable_machine'].every(e => data.equipment.includes(e as Equipment))) {
+			data.equipment = [...data.equipment, 'full_gym'];
+		}
+		markChanged();
+	}}
+/>
+
 <style>
 	.settings {
 		max-width: 480px;
@@ -339,6 +417,39 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
+	}
+
+	.settings-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.settings-header h1 {
+		flex: 1;
+		text-align: center;
+	}
+
+	.back-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: #000;
+		padding: 0;
+		border-radius: 8px;
+	}
+
+	.back-btn:hover {
+		background: #f0f0f0;
+	}
+
+	.header-spacer {
+		width: 36px;
 	}
 
 	h1 {
