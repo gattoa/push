@@ -13,10 +13,15 @@
 	import type { PlannedDay, PlannedExercise } from '$lib/types';
 
 	let dayIndex = $state(getTodayIndex());
+	let planSource: string | null = $state(null);
 
 	let forceCheckIn = $state(false);
 
 	onMount(() => {
+		try {
+			const raw = localStorage.getItem('push_generated_plan');
+			if (raw) planSource = JSON.parse(raw).source ?? null;
+		} catch {}
 		if (!localStorage.getItem('push_onboarding_complete')) {
 			goto('/onboarding');
 		}
@@ -75,6 +80,9 @@
 			{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
 		</a>
 		<h1>{todayPlan.label}</h1>
+		{#if planSource}
+			<span class="source-badge" class:ai={planSource === 'ai'}>{planSource === 'ai' ? 'AI Plan' : 'Mock Plan'}</span>
+		{/if}
 		{#if isTrainingDay && bodyParts.length > 0}
 			<div class="body-parts">
 				{#each bodyParts as part}
@@ -154,6 +162,24 @@
 		gap: 0.375rem;
 		margin-top: 0.5rem;
 		flex-wrap: wrap;
+	}
+
+	.source-badge {
+		display: inline-block;
+		font-size: 0.625rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.125rem 0.5rem;
+		border-radius: 100px;
+		background: #fee2e2;
+		color: #b91c1c;
+		margin-top: 0.25rem;
+	}
+
+	.source-badge.ai {
+		background: #dcfce7;
+		color: #15803d;
 	}
 
 	.chip {

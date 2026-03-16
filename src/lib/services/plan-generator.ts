@@ -447,14 +447,37 @@ function generateMockPlan(data: OnboardingData): GeneratedPlan {
 		}
 	}
 
-	return { days, exercises, sets };
+	return { days, exercises, sets, source: 'mock' as const };
 }
 
 // ============================================================
 // Service API
 // ============================================================
 
-/** Generate a training plan from onboarding data. Mock now; Claude API later. */
+/** Generate a training plan from onboarding data via Claude API, with mock fallback. */
 export async function generatePlan(data: OnboardingData): Promise<GeneratedPlan> {
-	return generateMockPlan(data);
+	try {
+		const response = await fetch('/api/generate-plan', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(data)
+		});
+
+		if (!response.ok) {
+			const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+			console.warn('AI plan generation failed, using mock:', err.error ?? err.details);
+			return generateMockPlan(data);
+		}
+
+		const result = await response.json();
+		if (result.success && result.plan) {
+			return { ...result.plan, source: 'ai' as const } as GeneratedPlan;
+		}
+
+		console.warn('AI plan generation returned unexpected shape, using mock');
+		return generateMockPlan(data);
+	} catch (e) {
+		console.warn('AI plan generation error, using mock:', e);
+		return generateMockPlan(data);
+	}
 }

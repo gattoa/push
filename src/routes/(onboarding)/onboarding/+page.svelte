@@ -11,6 +11,7 @@
 	import StepReview from '$lib/components/onboarding/StepReview.svelte';
 
 	let currentStep = $state(0);
+	let generating = $state(false);
 	let data: OnboardingData = $state({
 		dateOfBirth: null,
 		gender: null,
@@ -50,11 +51,17 @@
 	}
 
 	async function generate() {
-		const plan = await generatePlan(data);
-		saveGeneratedPlan(plan);
-		localStorage.setItem('push_onboarding_complete', 'true');
-		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
-		goto('/');
+		generating = true;
+		try {
+			const plan = await generatePlan(data);
+			console.log(`[Push] Plan generated via ${plan.source} — ${plan.exercises.length} exercises, ${plan.sets.length} sets`);
+			saveGeneratedPlan(plan);
+			localStorage.setItem('push_onboarding_complete', 'true');
+			localStorage.setItem('push_onboarding_data', JSON.stringify(data));
+			goto('/');
+		} finally {
+			generating = false;
+		}
 	}
 </script>
 
@@ -77,7 +84,7 @@
 			{:else if currentStep === 3}
 				<StepInjuries bind:values={data.injuries} />
 			{:else if currentStep === REVIEW_STEP}
-				<StepReview bind:data ongenerate={generate} />
+				<StepReview bind:data ongenerate={generate} loading={generating} />
 			{/if}
 		{/key}
 	</div>

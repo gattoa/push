@@ -2,9 +2,10 @@
 	import type { OnboardingData, ExperienceLevel, Gender, TrainingGoal, InjuryArea } from '$lib/types';
 	import SelectionCard from './SelectionCard.svelte';
 
-	let { data = $bindable(), ongenerate } = $props<{
+	let { data = $bindable(), ongenerate, loading = false } = $props<{
 		data: OnboardingData;
 		ongenerate: () => void;
+		loading?: boolean;
 	}>();
 
 	let editing: string | null = $state(null);
@@ -204,7 +205,13 @@
 		</div>
 	</div>
 
-	<button class="generate-btn" onclick={ongenerate}>Generate My Plan</button>
+	<button class="generate-btn" onclick={ongenerate} disabled={loading}>
+		{#if loading}
+			<span class="spinner"></span> Generating...
+		{:else}
+			Generate My Plan
+		{/if}
+	</button>
 </div>
 
 <style>
@@ -353,7 +360,28 @@
 		font-family: inherit;
 	}
 
-	.generate-btn:hover {
+	.generate-btn:hover:not(:disabled) {
 		background: #222;
+	}
+
+	.generate-btn:disabled {
+		background: #555;
+		cursor: not-allowed;
+	}
+
+	.spinner {
+		display: inline-block;
+		width: 14px;
+		height: 14px;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		border-top-color: #fff;
+		border-radius: 50%;
+		animation: spin 0.6s linear infinite;
+		vertical-align: middle;
+		margin-right: 0.25rem;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
 	}
 </style>

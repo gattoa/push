@@ -281,6 +281,7 @@ export interface GeneratedPlan {
 	days: PlannedDay[];
 	exercises: PlannedExercise[];
 	sets: PlannedSet[];
+	source: 'ai' | 'mock';
 }
 
 // === ExerciseDB API types ===
