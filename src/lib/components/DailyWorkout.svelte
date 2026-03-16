@@ -39,7 +39,7 @@
 				{#each nextSession.exercises.toSorted((a, b) => a.order - b.order) as exercise}
 					<li>
 						<span class="exercise-name">{exercise.exercise_name}</span>
-						<span class="exercise-body-parts">{exercise.body_parts.map(p => p.toLowerCase()).join(', ')}</span>
+						<span class="exercise-body-parts">{exercise.target_muscles.length > 0 ? exercise.target_muscles[0].toLowerCase() : ''}</span>
 					</li>
 				{/each}
 			</ul>

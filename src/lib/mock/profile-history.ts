@@ -14,35 +14,35 @@ export interface WeekHistory {
 const EXERCISE_TEMPLATE = [
 	// Mon - Push
 	{ dayIdx: 0, exercises: [
-		{ name: 'Bench Press', exDbId: 'exr_41n2hxnFMotsXTj3', bodyParts: ['CHEST'] },
-		{ name: 'Seated Shoulder Press', exDbId: 'exr_41n2hs6camM22yBG', bodyParts: ['SHOULDERS'] },
-		{ name: 'Arnold Press', exDbId: 'exr_41n2hMRXm49mM62z', bodyParts: ['SHOULDERS'] }
+		{ name: 'Bench Press', exDbId: 'exr_41n2hxnFMotsXTj3', bodyParts: ['CHEST'], targetMuscles: ['Pectoralis Major Sternal Head'] },
+		{ name: 'Seated Shoulder Press', exDbId: 'exr_41n2hs6camM22yBG', bodyParts: ['SHOULDERS'], targetMuscles: ['Anterior Deltoid'] },
+		{ name: 'Arnold Press', exDbId: 'exr_41n2hMRXm49mM62z', bodyParts: ['SHOULDERS'], targetMuscles: ['Anterior Deltoid'] }
 	]},
 	// Tue - Pull
 	{ dayIdx: 1, exercises: [
-		{ name: 'One Arm Bent-over Row', exDbId: 'exr_41n2hHdjQpnyNdie', bodyParts: ['BACK'] },
-		{ name: 'Pull up', exDbId: 'exr_41n2hU4y6EaYXFhr', bodyParts: ['BACK'] },
-		{ name: 'Hammer Curl', exDbId: 'exr_41n2hGioS8HumEF7', bodyParts: ['FOREARMS'] }
+		{ name: 'One Arm Bent-over Row', exDbId: 'exr_41n2hHdjQpnyNdie', bodyParts: ['BACK'], targetMuscles: ['Latissimus Dorsi'] },
+		{ name: 'Pull up', exDbId: 'exr_41n2hU4y6EaYXFhr', bodyParts: ['BACK'], targetMuscles: ['Latissimus Dorsi'] },
+		{ name: 'Hammer Curl', exDbId: 'exr_41n2hGioS8HumEF7', bodyParts: ['FOREARMS'], targetMuscles: ['Brachioradialis'] }
 	]},
 	// Wed - Legs
 	{ dayIdx: 2, exercises: [
-		{ name: 'Squat', exDbId: 'exr_41n2hmGR8WuVfe1U', bodyParts: ['QUADRICEPS', 'THIGHS'] },
-		{ name: 'Romanian Deadlift', exDbId: 'exr_41n2hn8rpbYihzEW', bodyParts: ['HIPS'] },
-		{ name: 'Bulgarian Split Squat', exDbId: 'exr_41n2hpLLs1uU5atr', bodyParts: ['QUADRICEPS', 'THIGHS'] },
-		{ name: 'Seated Calf Raise', exDbId: 'exr_41n2hTs4q3ihihZs', bodyParts: ['CALVES'] }
+		{ name: 'Squat', exDbId: 'exr_41n2hmGR8WuVfe1U', bodyParts: ['QUADRICEPS', 'THIGHS'], targetMuscles: ['Quadriceps', 'Gluteus Maximus'] },
+		{ name: 'Romanian Deadlift', exDbId: 'exr_41n2hn8rpbYihzEW', bodyParts: ['HIPS'], targetMuscles: ['Hamstrings', 'Gluteus Maximus'] },
+		{ name: 'Bulgarian Split Squat', exDbId: 'exr_41n2hpLLs1uU5atr', bodyParts: ['QUADRICEPS', 'THIGHS'], targetMuscles: ['Gluteus Maximus', 'Quadriceps'] },
+		{ name: 'Seated Calf Raise', exDbId: 'exr_41n2hTs4q3ihihZs', bodyParts: ['CALVES'], targetMuscles: ['Gastrocnemius'] }
 	]},
 	// Thu - Rest (no exercises)
 	// Fri - Push
 	{ dayIdx: 4, exercises: [
-		{ name: 'Palms In Incline Bench Press', exDbId: 'exr_41n2hsVHu7B1MTdr', bodyParts: ['UPPER ARMS'] },
-		{ name: 'Lateral Raise', exDbId: 'exr_41n2hjuGpcex14w7', bodyParts: ['SHOULDERS'] },
-		{ name: 'Chest Dip', exDbId: 'exr_41n2hkK8hGAcSnW7', bodyParts: ['CHEST'] }
+		{ name: 'Palms In Incline Bench Press', exDbId: 'exr_41n2hsVHu7B1MTdr', bodyParts: ['UPPER ARMS'], targetMuscles: ['Triceps Brachii'] },
+		{ name: 'Lateral Raise', exDbId: 'exr_41n2hjuGpcex14w7', bodyParts: ['SHOULDERS'], targetMuscles: ['Lateral Deltoid'] },
+		{ name: 'Chest Dip', exDbId: 'exr_41n2hkK8hGAcSnW7', bodyParts: ['CHEST'], targetMuscles: ['Pectoralis Major Sternal Head'] }
 	]},
 	// Sat - Pull
 	{ dayIdx: 5, exercises: [
-		{ name: 'Sliding Floor Pulldown on Towel', exDbId: 'exr_41n2hadPLLFRGvFk', bodyParts: ['BACK'] },
-		{ name: 'Seated Row with Towel', exDbId: 'exr_41n2hcFJpBvAkXCP', bodyParts: ['BACK'] },
-		{ name: 'Cross Body Hammer Curl', exDbId: 'exr_41n2hgCHNgtVLHna', bodyParts: ['FOREARMS'] }
+		{ name: 'Sliding Floor Pulldown on Towel', exDbId: 'exr_41n2hadPLLFRGvFk', bodyParts: ['BACK'], targetMuscles: ['Latissimus Dorsi'] },
+		{ name: 'Seated Row with Towel', exDbId: 'exr_41n2hcFJpBvAkXCP', bodyParts: ['BACK'], targetMuscles: ['Latissimus Dorsi'] },
+		{ name: 'Cross Body Hammer Curl', exDbId: 'exr_41n2hgCHNgtVLHna', bodyParts: ['FOREARMS'], targetMuscles: ['Brachioradialis'] }
 	]}
 ];
 
@@ -138,6 +138,7 @@ function generateWeek(weekNum: number, weekStart: string): WeekHistory {
 				exercisedb_id: ex.exDbId,
 				exercise_name: ex.name,
 				body_parts: ex.bodyParts,
+				target_muscles: ex.targetMuscles,
 				equipments: [],
 				order: eIdx
 			});

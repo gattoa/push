@@ -46,6 +46,7 @@ export interface PlannedExercise {
 	exercisedb_id: string;
 	exercise_name: string; // denormalized for display
 	body_parts: string[]; // denormalized from ExerciseDB
+	target_muscles: string[]; // denormalized from ExerciseDB (e.g., ["Pectoralis Major Sternal Head"])
 	equipments: string[]; // denormalized from ExerciseDB (e.g., ["dumbbell", "bench"])
 	cue?: string; // AI-prescribed modification (e.g., "slow eccentric", "neutral grip")
 	superset_group?: string; // exercises sharing a group ID are supersetted

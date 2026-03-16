@@ -19,6 +19,7 @@ interface ExerciseTemplate {
 	name: string;
 	exercisedbId: string;
 	bodyParts: string[];
+	targetMuscles: string[];
 	isBodyweight: boolean;
 	baseWeight: number; // intermediate baseline in lbs
 	baseSets: { reps: number; weightMultiplier: number }[];
@@ -29,6 +30,7 @@ const PUSH_EXERCISES: ExerciseTemplate[] = [
 		name: 'Bench Press',
 		exercisedbId: 'exr_41n2hxnFMotsXTj3',
 		bodyParts: ['CHEST'],
+		targetMuscles: ['Pectoralis Major Sternal Head'],
 		isBodyweight: false,
 		baseWeight: 135,
 		baseSets: [
@@ -41,6 +43,7 @@ const PUSH_EXERCISES: ExerciseTemplate[] = [
 		name: 'Seated Shoulder Press',
 		exercisedbId: 'exr_41n2hs6camM22yBG',
 		bodyParts: ['SHOULDERS'],
+		targetMuscles: ['Anterior Deltoid'],
 		isBodyweight: false,
 		baseWeight: 55,
 		baseSets: [
@@ -53,6 +56,7 @@ const PUSH_EXERCISES: ExerciseTemplate[] = [
 		name: 'Arnold Press',
 		exercisedbId: 'exr_41n2hMRXm49mM62z',
 		bodyParts: ['SHOULDERS'],
+		targetMuscles: ['Anterior Deltoid'],
 		isBodyweight: false,
 		baseWeight: 40,
 		baseSets: [
@@ -65,6 +69,7 @@ const PUSH_EXERCISES: ExerciseTemplate[] = [
 		name: 'Palms In Incline Bench Press',
 		exercisedbId: 'exr_41n2hsVHu7B1MTdr',
 		bodyParts: ['UPPER ARMS'],
+		targetMuscles: ['Triceps Brachii'],
 		isBodyweight: false,
 		baseWeight: 45,
 		baseSets: [
@@ -77,6 +82,7 @@ const PUSH_EXERCISES: ExerciseTemplate[] = [
 		name: 'Lateral Raise',
 		exercisedbId: 'exr_41n2hjuGpcex14w7',
 		bodyParts: ['SHOULDERS'],
+		targetMuscles: ['Lateral Deltoid'],
 		isBodyweight: false,
 		baseWeight: 15,
 		baseSets: [
@@ -89,6 +95,7 @@ const PUSH_EXERCISES: ExerciseTemplate[] = [
 		name: 'Chest Dip',
 		exercisedbId: 'exr_41n2hkK8hGAcSnW7',
 		bodyParts: ['CHEST'],
+		targetMuscles: ['Pectoralis Major Sternal Head'],
 		isBodyweight: true,
 		baseWeight: 0,
 		baseSets: [
@@ -101,6 +108,7 @@ const PUSH_EXERCISES: ExerciseTemplate[] = [
 		name: 'Triceps Dip',
 		exercisedbId: 'exr_41n2hadQgEEX8wDN',
 		bodyParts: ['TRICEPS', 'UPPER ARMS'],
+		targetMuscles: ['Triceps Brachii'],
 		isBodyweight: true,
 		baseWeight: 0,
 		baseSets: [
@@ -113,6 +121,7 @@ const PUSH_EXERCISES: ExerciseTemplate[] = [
 		name: 'Close-grip Push-up',
 		exercisedbId: 'exr_41n2hPgRbN1KtJuD',
 		bodyParts: ['TRICEPS', 'UPPER ARMS'],
+		targetMuscles: ['Triceps Brachii'],
 		isBodyweight: true,
 		baseWeight: 0,
 		baseSets: [
@@ -128,6 +137,7 @@ const PULL_EXERCISES: ExerciseTemplate[] = [
 		name: 'One Arm Bent-over Row',
 		exercisedbId: 'exr_41n2hHdjQpnyNdie',
 		bodyParts: ['BACK'],
+		targetMuscles: ['Latissimus Dorsi'],
 		isBodyweight: false,
 		baseWeight: 115,
 		baseSets: [
@@ -140,6 +150,7 @@ const PULL_EXERCISES: ExerciseTemplate[] = [
 		name: 'Pull up',
 		exercisedbId: 'exr_41n2hU4y6EaYXFhr',
 		bodyParts: ['BACK'],
+		targetMuscles: ['Latissimus Dorsi'],
 		isBodyweight: true,
 		baseWeight: 0,
 		baseSets: [
@@ -152,6 +163,7 @@ const PULL_EXERCISES: ExerciseTemplate[] = [
 		name: 'Hammer Curl',
 		exercisedbId: 'exr_41n2hGioS8HumEF7',
 		bodyParts: ['FOREARMS'],
+		targetMuscles: ['Brachioradialis'],
 		isBodyweight: false,
 		baseWeight: 25,
 		baseSets: [
@@ -164,6 +176,7 @@ const PULL_EXERCISES: ExerciseTemplate[] = [
 		name: 'Sliding Floor Pulldown on Towel',
 		exercisedbId: 'exr_41n2hadPLLFRGvFk',
 		bodyParts: ['BACK'],
+		targetMuscles: ['Latissimus Dorsi'],
 		isBodyweight: true,
 		baseWeight: 0,
 		baseSets: [
@@ -176,6 +189,7 @@ const PULL_EXERCISES: ExerciseTemplate[] = [
 		name: 'Seated Row with Towel',
 		exercisedbId: 'exr_41n2hcFJpBvAkXCP',
 		bodyParts: ['BACK'],
+		targetMuscles: ['Latissimus Dorsi'],
 		isBodyweight: true,
 		baseWeight: 0,
 		baseSets: [
@@ -188,6 +202,7 @@ const PULL_EXERCISES: ExerciseTemplate[] = [
 		name: 'Cross Body Hammer Curl',
 		exercisedbId: 'exr_41n2hgCHNgtVLHna',
 		bodyParts: ['FOREARMS'],
+		targetMuscles: ['Brachioradialis'],
 		isBodyweight: false,
 		baseWeight: 25,
 		baseSets: [
@@ -200,6 +215,7 @@ const PULL_EXERCISES: ExerciseTemplate[] = [
 		name: 'Commando Pull-up',
 		exercisedbId: 'exr_41n2hVCJfpAvJcdU',
 		bodyParts: ['BACK', 'WAIST'],
+		targetMuscles: ['Latissimus Dorsi'],
 		isBodyweight: true,
 		baseWeight: 0,
 		baseSets: [
@@ -212,6 +228,7 @@ const PULL_EXERCISES: ExerciseTemplate[] = [
 		name: 'Suspended Row',
 		exercisedbId: 'exr_41n2hdkBpqwoDmVq',
 		bodyParts: ['BACK'],
+		targetMuscles: ['Latissimus Dorsi'],
 		isBodyweight: true,
 		baseWeight: 0,
 		baseSets: [
@@ -227,6 +244,7 @@ const LEG_EXERCISES: ExerciseTemplate[] = [
 		name: 'Squat',
 		exercisedbId: 'exr_41n2hmGR8WuVfe1U',
 		bodyParts: ['QUADRICEPS', 'THIGHS'],
+		targetMuscles: ['Quadriceps', 'Gluteus Maximus'],
 		isBodyweight: false,
 		baseWeight: 135,
 		baseSets: [
@@ -240,6 +258,7 @@ const LEG_EXERCISES: ExerciseTemplate[] = [
 		name: 'Romanian Deadlift',
 		exercisedbId: 'exr_41n2hn8rpbYihzEW',
 		bodyParts: ['HIPS'],
+		targetMuscles: ['Hamstrings', 'Gluteus Maximus'],
 		isBodyweight: false,
 		baseWeight: 135,
 		baseSets: [
@@ -252,6 +271,7 @@ const LEG_EXERCISES: ExerciseTemplate[] = [
 		name: 'Bulgarian Split Squat',
 		exercisedbId: 'exr_41n2hpLLs1uU5atr',
 		bodyParts: ['QUADRICEPS', 'THIGHS'],
+		targetMuscles: ['Gluteus Maximus', 'Quadriceps'],
 		isBodyweight: false,
 		baseWeight: 45,
 		baseSets: [
@@ -264,6 +284,7 @@ const LEG_EXERCISES: ExerciseTemplate[] = [
 		name: 'Seated Calf Raise',
 		exercisedbId: 'exr_41n2hTs4q3ihihZs',
 		bodyParts: ['CALVES'],
+		targetMuscles: ['Gastrocnemius'],
 		isBodyweight: false,
 		baseWeight: 90,
 		baseSets: [
@@ -276,6 +297,7 @@ const LEG_EXERCISES: ExerciseTemplate[] = [
 		name: 'Goblet Squat',
 		exercisedbId: 'exr_41n2hQDiSwTZXM4F',
 		bodyParts: ['THIGHS'],
+		targetMuscles: ['Quadriceps'],
 		isBodyweight: false,
 		baseWeight: 50,
 		baseSets: [
@@ -288,6 +310,7 @@ const LEG_EXERCISES: ExerciseTemplate[] = [
 		name: 'Barbell Standing Calf Raise',
 		exercisedbId: 'exr_41n2hwoc6PkW1UJJ',
 		bodyParts: ['CALVES'],
+		targetMuscles: ['Gastrocnemius'],
 		isBodyweight: false,
 		baseWeight: 100,
 		baseSets: [
@@ -414,6 +437,7 @@ export function generateMockPlan(data: OnboardingData): GeneratedPlan {
 				exercisedb_id: tmpl.exercisedbId,
 				exercise_name: tmpl.name,
 				body_parts: tmpl.bodyParts,
+				target_muscles: tmpl.targetMuscles,
 				equipments: [],
 				order: exIdx
 			});

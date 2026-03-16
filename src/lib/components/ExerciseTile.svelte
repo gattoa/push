@@ -18,7 +18,7 @@
 		const parts: string[] = [];
 		if (exercise.cue) parts.push(exercise.cue);
 		if (exercise.equipments.length > 0) parts.push(exercise.equipments.join(', '));
-		parts.push(...exercise.body_parts.map(p => p.toLowerCase()));
+		if (exercise.target_muscles.length > 0) parts.push(exercise.target_muscles[0].toLowerCase());
 		return parts.join(' · ');
 	});
 </script>
