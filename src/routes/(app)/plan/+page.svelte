@@ -1,29 +1,31 @@
 <script lang="ts">
-	// Plan page — this week's 7-day schedule view
-	// Full implementation coming in a future milestone
+	import WeekSchedule from '$lib/components/WeekSchedule.svelte';
+	import { computeWeekMomentum } from '$lib/mock/profile';
+	import { getTodayIndex } from '$lib/mock/workouts';
+	import { mockWeekHistories } from '$lib/mock/profile-history';
+
+	const momentum = $derived(computeWeekMomentum(mockWeekHistories, getTodayIndex()));
 </script>
 
 <div class="plan">
 	<h1>This Week</h1>
-	<p class="placeholder">Week planner coming soon — view and rearrange your AI-generated schedule.</p>
+	<WeekSchedule {momentum} />
 </div>
 
 <style>
 	.plan {
 		max-width: 480px;
 		margin: 0 auto;
-		padding: 1rem 1rem 6rem;
-		text-align: center;
+		padding: 0 1rem 6rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
 	h1 {
 		font-size: 1.5rem;
 		font-weight: 800;
-		margin: 2rem 0 0.5rem;
-	}
-
-	.placeholder {
-		color: #999;
-		font-size: 0.875rem;
+		margin: 0.5rem 0 0;
+		text-align: center;
 	}
 </style>

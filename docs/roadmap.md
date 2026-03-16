@@ -64,8 +64,8 @@ Build every remaining screen from the product brief using mock data:
 - [ ] **Onboarding flow** — 4 screens: experience level, training days/week, goals, injuries. Mock output as a generated plan.
 - [ ] **Exercise swaps UI** — tap/swipe on exercise tile → 3 alternatives from ExerciseDB by target muscle
 - [x] **Check-in & activity model** — replaced "Review Day" with independent activity overlays: check-in (photo upload after last workout), assignment (deferred to AI milestone). See [today-design.md](./today-design.md)
-- [x] **Navigation restructure** — icon-driven nav (gear | date | avatar)
-- [ ] **Week plan view** — this week's 7-day schedule view with day shuffle capability, accessible from Today page
+- [x] **Navigation restructure** — icon-driven nav: Plan (calendar) | Today (text) | Profile (avatar). Target architecture: Plan • Today • Profile. History remains as a route but moves out of the nav bar (future: drill-down from Profile).
+- [x] **Week plan view** — this week's 7-day schedule via `WeekSchedule` component on `/plan`. Shows day-by-day itinerary with exercises, completion state, and split labels. Day shuffle and Assignment (AI trainer delivery) are future additions to this page.
 - [x] **Profile page** — historical calendar (date-indexed archive), lifetime stats, PRs, progress photos
 - [x] **Settings page** — review day config, training days, goals, injuries
 - [ ] **PR indicators** — on exercise tiles and detail page
