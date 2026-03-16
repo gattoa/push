@@ -331,6 +331,17 @@ export async function POST({ request }) {
 			return json({ success: false, error: 'Claude returned an incomplete plan' }, { status: 500 });
 		}
 
+		// Normalize body_parts, target_muscles, and equipments from catalog (Claude may simplify these)
+		const catalogById = new Map(availableExercises.map(e => [e.exerciseId, e]));
+		for (const ex of plan.exercises) {
+			const catalogEntry = catalogById.get(ex.exercisedb_id);
+			if (catalogEntry) {
+				ex.body_parts = catalogEntry.bodyParts;
+				ex.target_muscles = catalogEntry.targetMuscles;
+				ex.equipments = catalogEntry.equipments;
+			}
+		}
+
 		// Validate
 		const errors = validatePlan(plan, data, availableExercises);
 		if (errors.length > 0) {
