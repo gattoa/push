@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { OnboardingData } from '$lib/types';
-	import { generatePlan } from '$lib/services/plan-generator';
-	import { saveGeneratedPlan } from '$lib/services/workout';
 	import ProgressBar from '$lib/components/onboarding/ProgressBar.svelte';
 	import StepExperience from '$lib/components/onboarding/StepExperience.svelte';
 	import StepTrainingDays from '$lib/components/onboarding/StepTrainingDays.svelte';
@@ -14,7 +12,6 @@
 	import StepReview from '$lib/components/onboarding/StepReview.svelte';
 
 	let currentStep = $state(0);
-	let generating = $state(false);
 	let data: OnboardingData = $state({
 		dateOfBirth: null,
 		gender: null,
@@ -63,18 +60,10 @@
 		}
 	}
 
-	async function generate() {
-		generating = true;
-		try {
-			const plan = await generatePlan(data);
-			console.log(`[Push] Plan generated via ${plan.source} — ${plan.exercises.length} exercises, ${plan.sets.length} sets`);
-			saveGeneratedPlan(plan);
-			localStorage.setItem('push_onboarding_complete', 'true');
-			localStorage.setItem('push_onboarding_data', JSON.stringify(data));
-			goto('/');
-		} finally {
-			generating = false;
-		}
+	function generate() {
+		localStorage.setItem('push_onboarding_complete', 'true');
+		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
+		goto('/');
 	}
 </script>
 
@@ -103,7 +92,7 @@
 			{:else if currentStep === 6}
 				<StepDemographics bind:dateOfBirth={data.dateOfBirth} bind:gender={data.gender} />
 			{:else if currentStep === REVIEW_STEP}
-				<StepReview bind:data ongenerate={generate} loading={generating} />
+				<StepReview bind:data ongenerate={generate} />
 			{/if}
 		{/key}
 	</div>

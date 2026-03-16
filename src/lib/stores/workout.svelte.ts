@@ -25,6 +25,16 @@ export async function initWorkoutStore(): Promise<void> {
 	loaded = true;
 }
 
+export async function reloadWorkoutStore(): Promise<void> {
+	const data = await getCurrentWeek();
+	plan = data.plan;
+	days = data.days;
+	exercises = data.exercises;
+	plannedSets = data.plannedSets;
+	setLogs = data.setLogs;
+	loaded = true;
+}
+
 export function isLoaded(): boolean {
 	return loaded;
 }

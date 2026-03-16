@@ -4,27 +4,67 @@
 	import { getTodayIndex } from '$lib/utils/date';
 	import {
 		getPlan, getDays, getDay, getExercises, getExercisesForDay,
-		getPlannedSetsForDay, getSetLogsForDay, getAllSetLogs
+		getPlannedSetsForDay, getSetLogsForDay, getAllSetLogs,
+		reloadWorkoutStore
 	} from '$lib/stores/workout.svelte';
+	import { generatePlan } from '$lib/services/plan-generator';
+	import { saveGeneratedPlan } from '$lib/services/workout';
 	import DailyWorkout from '$lib/components/DailyWorkout.svelte';
 	import CheckInCard from '$lib/components/CheckInCard.svelte';
+	import PlanLoading from '$lib/components/PlanLoading.svelte';
 	import { isCheckInPending } from '$lib/stores/checkin';
 	import { today as copy } from '$lib/copy';
 	import type { PlannedDay, PlannedExercise } from '$lib/types';
 
 	let dayIndex = $state(getTodayIndex());
 	let planSource: string | null = $state(null);
+	let buildingPlan = $state(false);
+	let generationError = $state(false);
 
 	let forceCheckIn = $state(false);
 
+	async function triggerGeneration() {
+		buildingPlan = true;
+		generationError = false;
+		const rawData = localStorage.getItem('push_onboarding_data');
+		if (rawData) {
+			try {
+				const onboardingData = JSON.parse(rawData);
+				const plan = await generatePlan(onboardingData);
+				console.log(`[Push] Plan generated via ${plan.source} — ${plan.exercises.length} exercises, ${plan.sets.length} sets`);
+				saveGeneratedPlan(plan);
+				await reloadWorkoutStore();
+				planSource = plan.source;
+			} catch (e) {
+				console.error('[Push] Plan generation failed:', e);
+				generationError = true;
+			}
+		} else {
+			generationError = true;
+		}
+		buildingPlan = false;
+	}
+
+	function retryGeneration() {
+		triggerGeneration();
+	}
+
 	onMount(() => {
-		try {
-			const raw = localStorage.getItem('push_generated_plan');
-			if (raw) planSource = JSON.parse(raw).source ?? null;
-		} catch {}
 		if (!localStorage.getItem('push_onboarding_complete')) {
 			goto('/onboarding');
+			return;
 		}
+
+		const hasPlan = localStorage.getItem('push_generated_plan');
+		if (!hasPlan) {
+			triggerGeneration();
+			return;
+		}
+
+		try {
+			planSource = JSON.parse(hasPlan).source ?? null;
+		} catch {}
+
 		const params = new URLSearchParams(window.location.search);
 		const d = params.get('day');
 		if (d !== null) dayIndex = parseInt(d);
@@ -74,6 +114,11 @@
 	});
 </script>
 
+{#if buildingPlan || generationError}
+	<div class="today-page">
+		<PlanLoading error={generationError} onretry={retryGeneration} />
+	</div>
+{:else}
 <div class="today-page">
 	<div class="today-header">
 		<a href="/plan" class="today-date">
@@ -122,6 +167,7 @@
 		nextSession={nextTrainingDay()}
 	/>
 </div>
+{/if}
 
 <style>
 	.today-page {
