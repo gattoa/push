@@ -522,7 +522,7 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 						});
 					}
 				}
-			} else if (!day.is_rest_day && todayIndex !== undefined && day.day_of_week > todayIndex) {
+			} else if (!day.is_rest_day && todayIndex !== undefined && day.day_of_week >= todayIndex) {
 				for (const ex of dayExercises) {
 					for (const bp of ex.body_parts) {
 						if (!bodyPartsScheduled.has(bp)) bodyPartsScheduled.set(bp, []);
