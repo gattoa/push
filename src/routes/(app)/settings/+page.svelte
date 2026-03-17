@@ -4,6 +4,11 @@
 	import { page } from '$app/stores';
 	import { supabase } from '$lib/api/supabase';
 	import { clearSessionData } from '$lib/utils/storage';
+	import { getUserId } from '$lib/utils/auth';
+	import { fetchSettings, saveSettings, hasPlanAffectingChanges } from '$lib/services/settings-sync';
+	import { generatePlan } from '$lib/services/plan-generator';
+	import { saveGeneratedPlan } from '$lib/services/workout';
+	import { reloadWorkoutStore } from '$lib/stores/workout.svelte';
 	import type {
 		OnboardingData, ExperienceLevel, TrainingGoal, InjuryArea, Equipment,
 		AppPreferences, WeightUnit, ReviewDay, RestTimerSeconds
@@ -45,16 +50,28 @@
 
 	let hasChanges = $state(false);
 	let saved = $state(false);
+	let regenerating = $state(false);
+	let showRegenPrompt = $state(false);
+	let originalData: OnboardingData | null = $state(null);
 
-	onMount(() => {
-		const rawData = localStorage.getItem('push_onboarding_data');
-		if (rawData) {
-			try { data = JSON.parse(rawData); } catch { /* ignore */ }
+	onMount(async () => {
+		try {
+			const userId = await getUserId();
+			const settings = await fetchSettings(userId);
+			data = settings.onboardingData;
+			prefs = settings.preferences;
+		} catch {
+			// Fall back to localStorage (fetchSettings handles this internally)
+			const rawData = localStorage.getItem('push_onboarding_data');
+			if (rawData) {
+				try { data = JSON.parse(rawData); } catch { /* ignore */ }
+			}
+			const rawPrefs = localStorage.getItem('push_preferences');
+			if (rawPrefs) {
+				try { prefs = { ...prefs, ...JSON.parse(rawPrefs) }; } catch { /* ignore */ }
+			}
 		}
-		const rawPrefs = localStorage.getItem('push_preferences');
-		if (rawPrefs) {
-			try { prefs = { ...prefs, ...JSON.parse(rawPrefs) }; } catch { /* ignore */ }
-		}
+		originalData = structuredClone(data);
 	});
 
 	function markChanged() {
@@ -62,12 +79,40 @@
 		saved = false;
 	}
 
-	function save() {
-		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
-		localStorage.setItem('push_preferences', JSON.stringify(prefs));
+	async function save() {
+		// Check if plan-affecting fields changed
+		const planChanged = originalData && hasPlanAffectingChanges(originalData, data);
+
+		// Save to localStorage + Supabase
+		try {
+			const userId = await getUserId();
+			await saveSettings(userId, data, prefs);
+		} catch (e) {
+			// localStorage was already written by saveSettings
+			console.warn('[Push] Supabase settings save failed:', e instanceof Error ? e.message : e);
+		}
+
 		hasChanges = false;
 		saved = true;
+		originalData = structuredClone(data);
 		setTimeout(() => { saved = false; }, 2000);
+
+		if (planChanged) {
+			showRegenPrompt = true;
+		}
+	}
+
+	async function regeneratePlan() {
+		showRegenPrompt = false;
+		regenerating = true;
+		try {
+			const plan = await generatePlan(data);
+			await saveGeneratedPlan(plan);
+			await reloadWorkoutStore();
+		} catch (e) {
+			console.error('[Push] Plan regeneration failed:', e);
+		}
+		regenerating = false;
 	}
 
 	// Display labels
@@ -313,8 +358,22 @@
 		<button class="save-btn" onclick={save}>Save Changes</button>
 	{/if}
 
-	{#if saved}
+	{#if saved && !showRegenPrompt}
 		<p class="saved-msg">Saved</p>
+	{/if}
+
+	{#if showRegenPrompt}
+		<div class="regen-prompt">
+			<p class="regen-text">Your training settings changed. Generate a new plan?</p>
+			<div class="regen-actions">
+				<button class="regen-skip" onclick={() => showRegenPrompt = false}>Keep Current</button>
+				<button class="regen-btn" onclick={regeneratePlan}>New Plan</button>
+			</div>
+		</div>
+	{/if}
+
+	{#if regenerating}
+		<p class="regen-msg">Generating new plan...</p>
 	{/if}
 
 	<!-- Log out -->
@@ -566,6 +625,63 @@
 		color: #22c55e;
 		font-size: 0.875rem;
 		font-weight: 600;
+		margin: -0.5rem 0 0;
+	}
+
+	.regen-prompt {
+		background: #f8f8f8;
+		border: 1px solid #e8e8e8;
+		border-radius: 12px;
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.regen-text {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #333;
+		margin: 0;
+		text-align: center;
+	}
+
+	.regen-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.regen-skip {
+		flex: 1;
+		padding: 0.625rem;
+		background: none;
+		border: 1px solid #e8e8e8;
+		border-radius: 10px;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #666;
+		cursor: pointer;
+		font-family: inherit;
+	}
+
+	.regen-btn {
+		flex: 1;
+		padding: 0.625rem;
+		background: #000;
+		color: #fff;
+		border: none;
+		border-radius: 10px;
+		font-size: 0.875rem;
+		font-weight: 600;
+		cursor: pointer;
+		font-family: inherit;
+	}
+
+	.regen-msg {
+		text-align: center;
+		color: #999;
+		font-size: 0.875rem;
+		font-weight: 500;
 		margin: -0.5rem 0 0;
 	}
 

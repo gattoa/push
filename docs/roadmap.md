@@ -81,8 +81,8 @@ Full TypeScript types in `src/lib/types/index.ts`:
 
 ### High — Data integrity
 
-- [ ] **Settings not synced to Supabase** — Onboarding data and preferences only in localStorage. Lost on device switch.
-- [ ] **Settings changes don't regenerate plan** — Changing training days, equipment, or goals has zero effect on the current plan.
+- [x] **Settings synced to Supabase** — Onboarding data and preferences stored in `user_settings` table with Supabase-first fetch + localStorage fallback.
+- [x] **Settings changes trigger plan regeneration** — Changing plan-affecting fields (days, duration, equipment, goals, injuries, experience) prompts user to generate a new plan.
 
 ### Medium — UX gaps
 

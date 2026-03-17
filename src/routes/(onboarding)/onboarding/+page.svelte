@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/api/supabase';
+	import { getUserId } from '$lib/utils/auth';
+	import { saveSettings } from '$lib/services/settings-sync';
 	import type { OnboardingData } from '$lib/types';
 	import ProgressBar from '$lib/components/onboarding/ProgressBar.svelte';
 	import StepExperience from '$lib/components/onboarding/StepExperience.svelte';
@@ -65,6 +67,15 @@
 		localStorage.setItem('push_onboarding_complete', 'true');
 		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
 		await supabase.auth.updateUser({ data: { onboarding_complete: true } });
+
+		// Sync settings to Supabase
+		try {
+			const userId = await getUserId();
+			await saveSettings(userId, data, { reviewDay: 6, units: 'lbs', restTimerDefault: 90 });
+		} catch (e) {
+			console.warn('[Push] Settings sync on onboarding failed:', e instanceof Error ? e.message : e);
+		}
+
 		goto('/');
 	}
 </script>
