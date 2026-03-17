@@ -6,6 +6,8 @@ import {
 	mockPlannedSets,
 	mockSetLogs
 } from '$lib/mock/workouts';
+import { getDeviceId } from '$lib/utils/device';
+import { savePlanToSupabase, fetchCurrentPlan, upsertSetLogs } from '$lib/services/supabase-sync';
 
 export interface CurrentWeekData {
 	plan: WeeklyPlan;
@@ -18,9 +20,20 @@ export interface CurrentWeekData {
 const GENERATED_PLAN_KEY = 'push_generated_plan';
 const SET_LOGS_KEY = 'push_set_logs';
 
-/** Save a generated plan to localStorage. */
-export function saveGeneratedPlan(generated: GeneratedPlan): void {
+/** Save a generated plan to localStorage + Supabase. */
+export async function saveGeneratedPlan(generated: GeneratedPlan): Promise<void> {
+	// localStorage first (synchronous, immediate)
 	localStorage.setItem(GENERATED_PLAN_KEY, JSON.stringify(generated));
+
+	// Supabase (async, best-effort)
+	try {
+		const deviceId = getDeviceId();
+		const weekStart = getCurrentWeekStart();
+		await savePlanToSupabase(deviceId, generated, weekStart);
+		console.log('[Push] Plan saved to Supabase');
+	} catch (e) {
+		console.warn('[Push] Supabase plan save failed:', e instanceof Error ? e.message : e);
+	}
 }
 
 /** Build SetLogs (all uncompleted) from a generated plan's sets. */
@@ -56,7 +69,7 @@ function mergeSavedLogs(emptyLogs: SetLog[]): SetLog[] {
 }
 
 /** Compute the Monday of the current week as ISO date. */
-function getCurrentWeekStart(): string {
+export function getCurrentWeekStart(): string {
 	const now = new Date();
 	const day = now.getDay(); // 0=Sun, 1=Mon...
 	const diff = day === 0 ? 6 : day - 1; // days since Monday
@@ -65,19 +78,65 @@ function getCurrentWeekStart(): string {
 	return monday.toISOString().split('T')[0];
 }
 
-/** Fetch the current week's plan + logs. Uses generated plan if available, falls back to mock data. */
+/** Update localStorage cache from Supabase data. */
+function cacheToLocalStorage(data: CurrentWeekData): void {
+	if (typeof localStorage === 'undefined') return;
+	const generated: GeneratedPlan = {
+		days: data.days,
+		exercises: data.exercises,
+		sets: data.plannedSets,
+		source: data.plan.source ?? 'mock'
+	};
+	localStorage.setItem(GENERATED_PLAN_KEY, JSON.stringify(generated));
+	localStorage.setItem(SET_LOGS_KEY, JSON.stringify(data.setLogs));
+}
+
+/** Fetch the current week's plan + logs. Tries Supabase first, falls back to localStorage, then mock. */
 export async function getCurrentWeek(): Promise<CurrentWeekData> {
+	const deviceId = typeof localStorage !== 'undefined' ? getDeviceId() : '';
+	const weekStart = getCurrentWeekStart();
+
+	// 1. Try Supabase
+	if (deviceId) {
+		try {
+			const supabaseData = await fetchCurrentPlan(deviceId, weekStart);
+			if (supabaseData && supabaseData.days.length > 0) {
+				cacheToLocalStorage(supabaseData);
+				return supabaseData;
+			}
+		} catch (e) {
+			console.warn('[Push] Supabase fetch failed, falling back to localStorage:', e instanceof Error ? e.message : e);
+		}
+	}
+
+	// 2. Fall back to localStorage (and sync to Supabase if missing)
 	if (typeof localStorage !== 'undefined') {
 		const raw = localStorage.getItem(GENERATED_PLAN_KEY);
 		if (raw) {
 			try {
 				const generated: GeneratedPlan = JSON.parse(raw);
-				const weekStart = getCurrentWeekStart();
+
+				// Backfill: sync localStorage plan to Supabase so foreign keys exist
+				if (deviceId) {
+					savePlanToSupabase(deviceId, generated, weekStart)
+						.then(() => {
+							// Also sync any existing set logs
+							const logsRaw = localStorage.getItem(SET_LOGS_KEY);
+							if (logsRaw) {
+								const logs: SetLog[] = JSON.parse(logsRaw);
+								return upsertSetLogs(logs);
+							}
+						})
+						.then(() => console.log('[Push] Backfilled plan + logs to Supabase'))
+						.catch(e => console.warn('[Push] Backfill failed:', e instanceof Error ? e.message : e));
+				}
+
 				const plan: WeeklyPlan = {
 					id: 'gen-plan-1',
-					user_id: 'user-1',
+					user_id: deviceId || 'user-1',
 					week_start: weekStart,
 					review_day: 6,
+					source: generated.source,
 					created_at: new Date().toISOString()
 				};
 				return {
@@ -91,6 +150,7 @@ export async function getCurrentWeek(): Promise<CurrentWeekData> {
 		}
 	}
 
+	// 3. Fall back to mock data
 	return {
 		plan: mockWeeklyPlan,
 		days: mockPlannedDays,
@@ -100,9 +160,21 @@ export async function getCurrentWeek(): Promise<CurrentWeekData> {
 	};
 }
 
-/** Persist all set logs to localStorage. */
+/** Debounce timer for Supabase sync. */
+let syncTimeout: ReturnType<typeof setTimeout> | null = null;
+
+/** Persist all set logs to localStorage + debounced Supabase upsert. */
 export function persistSetLogs(logs: SetLog[]): void {
+	// localStorage first (synchronous, immediate)
 	if (typeof localStorage !== 'undefined') {
 		localStorage.setItem(SET_LOGS_KEY, JSON.stringify(logs));
 	}
+
+	// Debounced Supabase sync (300ms)
+	if (syncTimeout) clearTimeout(syncTimeout);
+	syncTimeout = setTimeout(() => {
+		upsertSetLogs(logs).catch(err =>
+			console.warn('[Push] Supabase set log sync failed:', err instanceof Error ? err.message : err)
+		);
+	}, 300);
 }

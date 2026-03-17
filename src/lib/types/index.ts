@@ -29,6 +29,7 @@ export interface WeeklyPlan {
 	user_id: string;
 	week_start: string; // ISO date, always a Monday
 	review_day: number; // 0=Sun, 1=Mon ... 6=Sat. Default 0
+	source?: 'ai' | 'mock';
 	created_at: string;
 }
 

@@ -32,7 +32,7 @@
 				const onboardingData = JSON.parse(rawData);
 				const plan = await generatePlan(onboardingData);
 				console.log(`[Push] Plan generated via ${plan.source} — ${plan.exercises.length} exercises, ${plan.sets.length} sets`);
-				saveGeneratedPlan(plan);
+				await saveGeneratedPlan(plan);
 				await reloadWorkoutStore();
 				planSource = plan.source;
 			} catch (e) {
