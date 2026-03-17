@@ -498,39 +498,41 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 				}
 			}
 
-			if (isCompleted) {
+			if (!day.is_rest_day) {
 				for (const ex of dayExercises) {
 					const exSetLogs = currentWeek.setLogs.filter(
 						s => s.planned_exercise_id === ex.id && s.completed
 					);
 
-					for (const s of exSetLogs) {
-						if (s.actual_weight !== null && s.actual_reps !== null) {
-							volume += s.actual_weight * s.actual_reps;
+					if (exSetLogs.length > 0) {
+						// Exercise has completed sets → count as hit
+						for (const s of exSetLogs) {
+							if (s.actual_weight !== null && s.actual_reps !== null) {
+								volume += s.actual_weight * s.actual_reps;
+							}
 						}
-					}
 
-					for (const bp of ex.body_parts) {
-						dayBodyParts.add(bp);
-						bodyPartsHit.set(bp, (bodyPartsHit.get(bp) ?? 0) + exSetLogs.length);
+						for (const bp of ex.body_parts) {
+							dayBodyParts.add(bp);
+							bodyPartsHit.set(bp, (bodyPartsHit.get(bp) ?? 0) + exSetLogs.length);
 
-						if (!bodyPartExercises.has(bp)) bodyPartExercises.set(bp, []);
-						bodyPartExercises.get(bp)!.push({
-							exerciseName: ex.exercise_name,
-							sets: exSetLogs.length,
-							exercisedbId: ex.exercisedb_id
-						});
-					}
-				}
-			} else if (!day.is_rest_day && todayIndex !== undefined && day.day_of_week >= todayIndex) {
-				for (const ex of dayExercises) {
-					for (const bp of ex.body_parts) {
-						if (!bodyPartsScheduled.has(bp)) bodyPartsScheduled.set(bp, []);
-						bodyPartsScheduled.get(bp)!.push({
-							exerciseName: ex.exercise_name,
-							dayLabel: day.label,
-							exercisedbId: ex.exercisedb_id
-						});
+							if (!bodyPartExercises.has(bp)) bodyPartExercises.set(bp, []);
+							bodyPartExercises.get(bp)!.push({
+								exerciseName: ex.exercise_name,
+								sets: exSetLogs.length,
+								exercisedbId: ex.exercisedb_id
+							});
+						}
+					} else if (todayIndex !== undefined && day.day_of_week >= todayIndex) {
+						// No completed sets, today or future → scheduled
+						for (const bp of ex.body_parts) {
+							if (!bodyPartsScheduled.has(bp)) bodyPartsScheduled.set(bp, []);
+							bodyPartsScheduled.get(bp)!.push({
+								exerciseName: ex.exercise_name,
+								dayLabel: day.label,
+								exercisedbId: ex.exercisedb_id
+							});
+						}
 					}
 				}
 			}

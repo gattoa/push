@@ -1,5 +1,5 @@
 import type { WeeklyPlan, PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
-import { getCurrentWeek } from '$lib/services/workout';
+import { getCurrentWeek, persistSetLogs } from '$lib/services/workout';
 
 // Single source of truth for the current week's workout state.
 // Both Today page and Exercise Detail read/write this store.
@@ -126,6 +126,7 @@ export function toggleSet(setLogId: string): void {
 			}
 		}
 	}
+	persistSetLogs(setLogs);
 }
 
 export function updateSet(setLogId: string, values: { actual_reps?: number | null; actual_weight?: number | null }): void {
@@ -134,6 +135,7 @@ export function updateSet(setLogId: string, values: { actual_reps?: number | nul
 
 	if (values.actual_reps !== undefined) log.actual_reps = values.actual_reps;
 	if (values.actual_weight !== undefined) log.actual_weight = values.actual_weight;
+	persistSetLogs(setLogs);
 }
 
 export function updateDropLog(setLogId: string, dropIndex: number, values: { actual_reps?: number | null; actual_weight?: number | null }): void {
@@ -142,6 +144,7 @@ export function updateDropLog(setLogId: string, dropIndex: number, values: { act
 
 	if (values.actual_reps !== undefined) log.drop_logs[dropIndex].actual_reps = values.actual_reps;
 	if (values.actual_weight !== undefined) log.drop_logs[dropIndex].actual_weight = values.actual_weight;
+	persistSetLogs(setLogs);
 }
 
 export function completeAllSets(exerciseId: string): void {
@@ -163,4 +166,5 @@ export function completeAllSets(exerciseId: string): void {
 			}
 		}
 	}
+	persistSetLogs(setLogs);
 }

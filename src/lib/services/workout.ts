@@ -16,6 +16,7 @@ export interface CurrentWeekData {
 }
 
 const GENERATED_PLAN_KEY = 'push_generated_plan';
+const SET_LOGS_KEY = 'push_set_logs';
 
 /** Save a generated plan to localStorage. */
 export function saveGeneratedPlan(generated: GeneratedPlan): void {
@@ -34,6 +35,24 @@ function createEmptySetLogs(sets: PlannedSet[]): SetLog[] {
 		actual_weight: null,
 		completed: false
 	}));
+}
+
+/** Merge saved set logs from localStorage into freshly created empty logs. */
+function mergeSavedLogs(emptyLogs: SetLog[]): SetLog[] {
+	if (typeof localStorage === 'undefined') return emptyLogs;
+	const raw = localStorage.getItem(SET_LOGS_KEY);
+	if (!raw) return emptyLogs;
+	try {
+		const saved: SetLog[] = JSON.parse(raw);
+		const savedById = new Map(saved.map(s => [s.id, s]));
+		return emptyLogs.map(log => {
+			const s = savedById.get(log.id);
+			if (!s) return log;
+			return { ...log, actual_reps: s.actual_reps, actual_weight: s.actual_weight, completed: s.completed, drop_logs: s.drop_logs ?? log.drop_logs };
+		});
+	} catch {
+		return emptyLogs;
+	}
 }
 
 /** Compute the Monday of the current week as ISO date. */
@@ -66,7 +85,7 @@ export async function getCurrentWeek(): Promise<CurrentWeekData> {
 					days: generated.days,
 					exercises: structuredClone(generated.exercises),
 					plannedSets: structuredClone(generated.sets),
-					setLogs: createEmptySetLogs(generated.sets)
+					setLogs: mergeSavedLogs(createEmptySetLogs(generated.sets))
 				};
 			} catch { /* fall through to mock */ }
 		}
@@ -81,7 +100,9 @@ export async function getCurrentWeek(): Promise<CurrentWeekData> {
 	};
 }
 
-/** Persist a set log update. No-op for mock; writes to Supabase later. */
-export async function saveSetLog(_setLog: SetLog): Promise<void> {
-	// Mock: no-op. Supabase: upsert to set_logs table.
+/** Persist all set logs to localStorage. */
+export function persistSetLogs(logs: SetLog[]): void {
+	if (typeof localStorage !== 'undefined') {
+		localStorage.setItem(SET_LOGS_KEY, JSON.stringify(logs));
+	}
 }

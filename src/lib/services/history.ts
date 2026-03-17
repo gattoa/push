@@ -201,7 +201,7 @@ function getGeneratedWeekHistory(): WeekHistory | null {
 		monday.setDate(now.getDate() - diff);
 		const weekStart = monday.toISOString().split('T')[0];
 
-		const setLogs: SetLog[] = generated.sets.map(ps => ({
+		let setLogs: SetLog[] = generated.sets.map(ps => ({
 			id: `log-${ps.id}`,
 			workout_log_id: `wlog-${ps.planned_exercise_id}`,
 			planned_exercise_id: ps.planned_exercise_id,
@@ -211,6 +211,20 @@ function getGeneratedWeekHistory(): WeekHistory | null {
 			actual_weight: null,
 			completed: false
 		}));
+
+		// Merge saved set logs so history reflects actual completions
+		const savedRaw = localStorage.getItem('push_set_logs');
+		if (savedRaw) {
+			try {
+				const saved: SetLog[] = JSON.parse(savedRaw);
+				const savedById = new Map(saved.map(s => [s.id, s]));
+				setLogs = setLogs.map(log => {
+					const s = savedById.get(log.id);
+					if (!s) return log;
+					return { ...log, actual_reps: s.actual_reps, actual_weight: s.actual_weight, completed: s.completed, drop_logs: s.drop_logs };
+				});
+			} catch { /* ignore */ }
+		}
 
 		return {
 			weekNumber: 5,
