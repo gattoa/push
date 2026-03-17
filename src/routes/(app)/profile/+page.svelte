@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import type { OnboardingData, TrainingGoal, AppPreferences } from '$lib/types';
 	import { getWeekHistories } from '$lib/services/history';
@@ -8,8 +9,11 @@
 	import WeekCard from '$lib/components/WeekCard.svelte';
 	import MuscleCard from '$lib/components/MuscleCard.svelte';
 
-	let email = $state('');
 	let momentum: import('$lib/types').WeekMomentum | null = $state(null);
+	const session = $derived($page.data.session);
+	const userEmail = $derived(session?.user?.email ?? '');
+	const userName = $derived(session?.user?.user_metadata?.full_name ?? 'Push Athlete');
+	const avatarUrl = $derived(session?.user?.user_metadata?.avatar_url ?? '');
 
 	let data: OnboardingData = $state({
 		dateOfBirth: null,
@@ -43,11 +47,9 @@
 				localStorage.setItem('push_onboarding_data', JSON.stringify(data));
 			} catch { /* ignore */ }
 		}
-		const rawEmail = localStorage.getItem('push_email');
-		if (rawEmail) email = rawEmail;
 	});
 
-	const avatarInitial = $derived(email ? email[0].toUpperCase() : 'P');
+	const avatarInitial = $derived(userEmail ? userEmail[0].toUpperCase() : 'P');
 
 	const experienceLabels: Record<string, string> = {
 		beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced'
@@ -64,13 +66,17 @@
 	<!-- Header -->
 	<div class="profile-header">
 		<button class="avatar-btn" onclick={() => goto('/settings')}>
-			<div class="avatar">
-				<span class="avatar-initial">{avatarInitial}</span>
-			</div>
+			{#if avatarUrl}
+				<img class="avatar-img" src={avatarUrl} alt="" />
+			{:else}
+				<div class="avatar">
+					<span class="avatar-initial">{avatarInitial}</span>
+				</div>
+			{/if}
 		</button>
-		<h1>Push Athlete</h1>
-		{#if email}
-			<p class="subtitle">{email}</p>
+		<h1>{userName}</h1>
+		{#if userEmail}
+			<p class="subtitle">{userEmail}</p>
 		{/if}
 		{#if experienceDisplay || data.goals.length > 0}
 			<div class="identity-chips">
@@ -159,6 +165,18 @@
 		align-items: center;
 		justify-content: center;
 		transition: transform 0.15s ease;
+	}
+
+	.avatar-img {
+		width: 72px;
+		height: 72px;
+		border-radius: 50%;
+		object-fit: cover;
+		transition: transform 0.15s ease;
+	}
+
+	.avatar-btn:hover .avatar-img {
+		transform: scale(1.05);
 	}
 
 	.avatar-initial {

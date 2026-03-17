@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { supabase } from '$lib/api/supabase';
 	import type { OnboardingData } from '$lib/types';
 	import ProgressBar from '$lib/components/onboarding/ProgressBar.svelte';
 	import StepExperience from '$lib/components/onboarding/StepExperience.svelte';
@@ -60,9 +61,10 @@
 		}
 	}
 
-	function generate() {
+	async function generate() {
 		localStorage.setItem('push_onboarding_complete', 'true');
 		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
+		await supabase.auth.updateUser({ data: { onboarding_complete: true } });
 		goto('/');
 	}
 </script>

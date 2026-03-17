@@ -6,7 +6,7 @@ import {
 	mockPlannedSets,
 	mockSetLogs
 } from '$lib/mock/workouts';
-import { getDeviceId } from '$lib/utils/device';
+import { getUserId } from '$lib/utils/auth';
 import { savePlanToSupabase, fetchCurrentPlan, upsertSetLogs } from '$lib/services/supabase-sync';
 
 export interface CurrentWeekData {
@@ -27,9 +27,9 @@ export async function saveGeneratedPlan(generated: GeneratedPlan): Promise<void>
 
 	// Supabase (async, best-effort)
 	try {
-		const deviceId = getDeviceId();
+		const userId = await getUserId();
 		const weekStart = getCurrentWeekStart();
-		await savePlanToSupabase(deviceId, generated, weekStart);
+		await savePlanToSupabase(userId, generated, weekStart);
 		console.log('[Push] Plan saved to Supabase');
 	} catch (e) {
 		console.warn('[Push] Supabase plan save failed:', e instanceof Error ? e.message : e);
@@ -93,13 +93,13 @@ function cacheToLocalStorage(data: CurrentWeekData): void {
 
 /** Fetch the current week's plan + logs. Tries Supabase first, falls back to localStorage, then mock. */
 export async function getCurrentWeek(): Promise<CurrentWeekData> {
-	const deviceId = typeof localStorage !== 'undefined' ? getDeviceId() : '';
+	const userId = typeof localStorage !== 'undefined' ? await getUserId() : '';
 	const weekStart = getCurrentWeekStart();
 
 	// 1. Try Supabase
-	if (deviceId) {
+	if (userId) {
 		try {
-			const supabaseData = await fetchCurrentPlan(deviceId, weekStart);
+			const supabaseData = await fetchCurrentPlan(userId, weekStart);
 			if (supabaseData && supabaseData.days.length > 0) {
 				cacheToLocalStorage(supabaseData);
 				return supabaseData;
@@ -117,8 +117,8 @@ export async function getCurrentWeek(): Promise<CurrentWeekData> {
 				const generated: GeneratedPlan = JSON.parse(raw);
 
 				// Backfill: sync localStorage plan to Supabase so foreign keys exist
-				if (deviceId) {
-					savePlanToSupabase(deviceId, generated, weekStart)
+				if (userId) {
+					savePlanToSupabase(userId, generated, weekStart)
 						.then(() => {
 							// Also sync any existing set logs
 							const logsRaw = localStorage.getItem(SET_LOGS_KEY);
@@ -133,7 +133,7 @@ export async function getCurrentWeek(): Promise<CurrentWeekData> {
 
 				const plan: WeeklyPlan = {
 					id: 'gen-plan-1',
-					user_id: deviceId || 'user-1',
+					user_id: userId || 'user-1',
 					week_start: weekStart,
 					review_day: 6,
 					source: generated.source,

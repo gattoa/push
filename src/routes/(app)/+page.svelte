@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { getTodayIndex } from '$lib/utils/date';
 	import {
 		getPlan, getDays, getDay, getExercises, getExercisesForDay,
@@ -50,11 +49,6 @@
 	}
 
 	onMount(() => {
-		if (!localStorage.getItem('push_onboarding_complete')) {
-			goto('/onboarding');
-			return;
-		}
-
 		const hasPlan = localStorage.getItem('push_generated_plan');
 		if (!hasPlan) {
 			triggerGeneration();

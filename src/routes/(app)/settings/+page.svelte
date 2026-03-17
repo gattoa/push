@@ -1,11 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { supabase } from '$lib/api/supabase';
 	import type {
 		OnboardingData, ExperienceLevel, TrainingGoal, InjuryArea, Equipment,
 		AppPreferences, WeightUnit, ReviewDay, RestTimerSeconds
 	} from '$lib/types';
 	import BottomSheet from '$lib/components/BottomSheet.svelte';
 	import SegmentedToggle from '$lib/components/SegmentedToggle.svelte';
+
+	const session = $derived($page.data.session);
+	const userEmail = $derived(session?.user?.email ?? 'Not signed in');
 
 	let data: OnboardingData = $state({
 		dateOfBirth: null,
@@ -208,11 +214,11 @@
 		<div class="header-spacer"></div>
 	</div>
 
-	<!-- Email placeholder -->
+	<!-- Account -->
 	<div class="card">
 		<div class="row static">
 			<span class="row-label">Email</span>
-			<span class="row-value muted">Not signed in</span>
+			<span class="row-value">{userEmail}</span>
 		</div>
 	</div>
 
@@ -310,8 +316,8 @@
 		<p class="saved-msg">Saved</p>
 	{/if}
 
-	<!-- Log out placeholder -->
-	<button class="logout-btn" disabled>Log out</button>
+	<!-- Log out -->
+	<button class="logout-btn" onclick={async () => { await supabase.auth.signOut(); goto('/login'); }}>Log out</button>
 </div>
 
 <!-- Bottom Sheets -->
@@ -572,7 +578,10 @@
 		font-weight: 600;
 		font-family: inherit;
 		width: 100%;
-		cursor: not-allowed;
-		opacity: 0.4;
+		cursor: pointer;
+	}
+
+	.logout-btn:hover {
+		background: #fef2f2;
 	}
 </style>

@@ -2,32 +2,25 @@ import { supabase } from '$lib/api/supabase';
 import type { WeeklyPlan, PlannedDay, PlannedExercise, PlannedSet, SetLog, GeneratedPlan } from '$lib/types';
 import type { CurrentWeekData } from './workout';
 
-/** Upsert device row (fire-and-forget). */
-export async function ensureDevice(deviceId: string): Promise<void> {
-	if (!deviceId) return;
-	const { error } = await supabase.from('devices').upsert({ id: deviceId });
-	if (error) console.warn('[Push] ensureDevice failed:', error.message);
-}
-
-/** Save a full generated plan to Supabase. Deletes any existing plan for this device+week first. */
+/** Save a full generated plan to Supabase. Deletes any existing plan for this user+week first. */
 export async function savePlanToSupabase(
-	deviceId: string,
+	userId: string,
 	generated: GeneratedPlan,
 	weekStart: string
 ): Promise<void> {
-	if (!deviceId) return;
+	if (!userId) return;
 
 	// Delete existing plan for this week (CASCADE cleans children)
 	await supabase
 		.from('weekly_plans')
 		.delete()
-		.eq('user_id', deviceId)
+		.eq('user_id', userId)
 		.eq('week_start', weekStart);
 
 	// Insert plan
 	const { error: planError } = await supabase.from('weekly_plans').insert({
 		id: 'gen-plan-1',
-		user_id: deviceId,
+		user_id: userId,
 		week_start: weekStart,
 		review_day: 6,
 		source: generated.source
@@ -104,16 +97,16 @@ export async function savePlanToSupabase(
 
 /** Fetch the current week's plan from Supabase. Returns null if no plan found. */
 export async function fetchCurrentPlan(
-	deviceId: string,
+	userId: string,
 	weekStart: string
 ): Promise<CurrentWeekData | null> {
-	if (!deviceId) return null;
+	if (!userId) return null;
 
 	// Fetch plan
 	const { data: planRow, error: planError } = await supabase
 		.from('weekly_plans')
 		.select('*')
-		.eq('user_id', deviceId)
+		.eq('user_id', userId)
 		.eq('week_start', weekStart)
 		.maybeSingle();
 
