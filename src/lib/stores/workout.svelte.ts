@@ -1,4 +1,4 @@
-import type { WeeklyPlan, PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
+import type { WeeklyPlan, PlannedDay, PlannedExercise, PlannedSet, SetLog, WeekHistory } from '$lib/types';
 import { getCurrentWeek, persistSetLogs, persistDaySwap } from '$lib/services/workout';
 
 // Single source of truth for the current week's workout state.
@@ -11,22 +11,27 @@ let exercises = $state<PlannedExercise[]>([]);
 let plannedSets = $state<PlannedSet[]>([]);
 let setLogs = $state<SetLog[]>([]);
 let loaded = $state(false);
+let ready = $state(false);
 
 // --- Initialization ---
 
 export async function initWorkoutStore(): Promise<void> {
 	if (loaded) return;
 	const data = await getCurrentWeek();
-	plan = data.plan;
-	days = data.days;
-	exercises = data.exercises;
-	plannedSets = data.plannedSets;
-	setLogs = data.setLogs;
-	loaded = true;
+	if (data) {
+		plan = data.plan;
+		days = data.days;
+		exercises = data.exercises;
+		plannedSets = data.plannedSets;
+		setLogs = data.setLogs;
+		loaded = true;
+	}
+	ready = true; // Always mark ready so child pages can render
 }
 
 export async function reloadWorkoutStore(): Promise<void> {
 	const data = await getCurrentWeek();
+	if (!data) return;
 	plan = data.plan;
 	days = data.days;
 	exercises = data.exercises;
@@ -37,6 +42,10 @@ export async function reloadWorkoutStore(): Promise<void> {
 
 export function isLoaded(): boolean {
 	return loaded;
+}
+
+export function isStoreReady(): boolean {
+	return ready;
 }
 
 // --- Getters ---
@@ -93,6 +102,18 @@ export function getAllSetLogs(): SetLog[] {
 
 export function getAllPlannedSets(): PlannedSet[] {
 	return plannedSets;
+}
+
+export function getCurrentWeekHistory(): WeekHistory | null {
+	if (!loaded || !plan) return null;
+	return {
+		weekNumber: 1,
+		weekStart: plan.week_start,
+		days,
+		exercises,
+		plannedSets,
+		setLogs
+	};
 }
 
 // --- Mutations ---

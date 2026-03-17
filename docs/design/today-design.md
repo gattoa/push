@@ -120,7 +120,7 @@ back
   BW    BW     BW
 ```
 
-**Drop sets (future — design only):**
+**Drop sets:**
 ```
 Bench Press                                    0/5
 chest

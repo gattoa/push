@@ -75,9 +75,9 @@ Full TypeScript types in `src/lib/types/index.ts`:
 
 ### Critical — App-breaking
 
-- [ ] **Week rollover** — No mechanism to generate a new plan when a new week starts. App is single-week only. Need: detect week change, prompt or auto-generate new plan.
-- [ ] **Logout doesn't clear localStorage** — User B on same device sees User A's data AND it auto-syncs to User B's Supabase account.
-- [ ] **Supabase RLS** — No row-level security policies verified. Client-side `.eq('user_id', id)` is not security.
+- [x] **Week rollover** — Detects stale `week_start` in localStorage, clears week-scoped data, Today page auto-triggers new plan generation.
+- [x] **Logout doesn't clear localStorage** — `clearSessionData()` wipes all 6 localStorage keys before `signOut()`.
+- [x] **Supabase RLS** — All 5 tables have RLS enabled with ownership policies (see `docs/rls-policies.sql`).
 
 ### High — Data integrity
 

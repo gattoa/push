@@ -1,13 +1,7 @@
 import type { WeeklyPlan, PlannedDay, PlannedExercise, PlannedSet, SetLog, GeneratedPlan } from '$lib/types';
-import {
-	mockWeeklyPlan,
-	mockPlannedDays,
-	mockPlannedExercises,
-	mockPlannedSets,
-	mockSetLogs
-} from '$lib/mock/workouts';
 import { getUserId } from '$lib/utils/auth';
 import { savePlanToSupabase, fetchCurrentPlan, upsertSetLogs } from '$lib/services/supabase-sync';
+import { clearWeekData } from '$lib/utils/storage';
 
 export interface CurrentWeekData {
 	plan: WeeklyPlan;
@@ -22,8 +16,8 @@ const SET_LOGS_KEY = 'push_set_logs';
 
 /** Save a generated plan to localStorage + Supabase. */
 export async function saveGeneratedPlan(generated: GeneratedPlan): Promise<void> {
-	// localStorage first (synchronous, immediate)
-	localStorage.setItem(GENERATED_PLAN_KEY, JSON.stringify(generated));
+	// localStorage first (synchronous, immediate) — embed week_start for rollover detection
+	localStorage.setItem(GENERATED_PLAN_KEY, JSON.stringify({ ...generated, week_start: getCurrentWeekStart() }));
 
 	// Supabase (async, best-effort)
 	try {
@@ -87,12 +81,12 @@ function cacheToLocalStorage(data: CurrentWeekData): void {
 		sets: data.plannedSets,
 		source: data.plan.source ?? 'mock'
 	};
-	localStorage.setItem(GENERATED_PLAN_KEY, JSON.stringify(generated));
+	localStorage.setItem(GENERATED_PLAN_KEY, JSON.stringify({ ...generated, week_start: data.plan.week_start }));
 	localStorage.setItem(SET_LOGS_KEY, JSON.stringify(data.setLogs));
 }
 
-/** Fetch the current week's plan + logs. Tries Supabase first, falls back to localStorage, then mock. */
-export async function getCurrentWeek(): Promise<CurrentWeekData> {
+/** Fetch the current week's plan + logs. Tries Supabase first, falls back to localStorage. Returns null if no plan exists. */
+export async function getCurrentWeek(): Promise<CurrentWeekData | null> {
 	const userId = typeof localStorage !== 'undefined' ? await getUserId() : '';
 	const weekStart = getCurrentWeekStart();
 
@@ -114,50 +108,51 @@ export async function getCurrentWeek(): Promise<CurrentWeekData> {
 		const raw = localStorage.getItem(GENERATED_PLAN_KEY);
 		if (raw) {
 			try {
-				const generated: GeneratedPlan = JSON.parse(raw);
+				const generated: GeneratedPlan & { week_start?: string } = JSON.parse(raw);
 
-				// Backfill: sync localStorage plan to Supabase so foreign keys exist
-				if (userId) {
-					savePlanToSupabase(userId, generated, weekStart)
-						.then(() => {
-							// Also sync any existing set logs
-							const logsRaw = localStorage.getItem(SET_LOGS_KEY);
-							if (logsRaw) {
-								const logs: SetLog[] = JSON.parse(logsRaw);
-								return upsertSetLogs(logs);
-							}
-						})
-						.then(() => console.log('[Push] Backfilled plan + logs to Supabase'))
-						.catch(e => console.warn('[Push] Backfill failed:', e instanceof Error ? e.message : e));
+				// Week rollover: if stored plan is from a previous week, clear and regenerate
+				if (generated.week_start && generated.week_start !== weekStart) {
+					console.log(`[Push] Week rollover: stored plan is from ${generated.week_start}, current week is ${weekStart}`);
+					clearWeekData();
+					// Fall through — Today page will auto-trigger generation
+				} else {
+					// Backfill: sync localStorage plan to Supabase so foreign keys exist
+					if (userId) {
+						savePlanToSupabase(userId, generated, weekStart)
+							.then(() => {
+								// Also sync any existing set logs
+								const logsRaw = localStorage.getItem(SET_LOGS_KEY);
+								if (logsRaw) {
+									const logs: SetLog[] = JSON.parse(logsRaw);
+									return upsertSetLogs(logs);
+								}
+							})
+							.then(() => console.log('[Push] Backfilled plan + logs to Supabase'))
+							.catch(e => console.warn('[Push] Backfill failed:', e instanceof Error ? e.message : e));
+					}
+
+					const plan: WeeklyPlan = {
+						id: 'gen-plan-1',
+						user_id: userId || 'user-1',
+						week_start: weekStart,
+						review_day: 6,
+						source: generated.source,
+						created_at: new Date().toISOString()
+					};
+					return {
+						plan,
+						days: generated.days,
+						exercises: structuredClone(generated.exercises),
+						plannedSets: structuredClone(generated.sets),
+						setLogs: mergeSavedLogs(createEmptySetLogs(generated.sets))
+					};
 				}
-
-				const plan: WeeklyPlan = {
-					id: 'gen-plan-1',
-					user_id: userId || 'user-1',
-					week_start: weekStart,
-					review_day: 6,
-					source: generated.source,
-					created_at: new Date().toISOString()
-				};
-				return {
-					plan,
-					days: generated.days,
-					exercises: structuredClone(generated.exercises),
-					plannedSets: structuredClone(generated.sets),
-					setLogs: mergeSavedLogs(createEmptySetLogs(generated.sets))
-				};
-			} catch { /* fall through to mock */ }
+			} catch { /* fall through */ }
 		}
 	}
 
-	// 3. Fall back to mock data
-	return {
-		plan: mockWeeklyPlan,
-		days: mockPlannedDays,
-		exercises: structuredClone(mockPlannedExercises),
-		plannedSets: structuredClone(mockPlannedSets),
-		setLogs: structuredClone(mockSetLogs)
-	};
+	// 3. No plan found — caller should trigger generation
+	return null;
 }
 
 /** Persist a day swap to localStorage + Supabase. */

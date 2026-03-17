@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { supabase } from '$lib/api/supabase';
+	import { clearSessionData } from '$lib/utils/storage';
 	import type {
 		OnboardingData, ExperienceLevel, TrainingGoal, InjuryArea, Equipment,
 		AppPreferences, WeightUnit, ReviewDay, RestTimerSeconds
@@ -317,7 +318,7 @@
 	{/if}
 
 	<!-- Log out -->
-	<button class="logout-btn" onclick={async () => { await supabase.auth.signOut(); goto('/login'); }}>Log out</button>
+	<button class="logout-btn" onclick={async () => { clearSessionData(); await supabase.auth.signOut(); goto('/login'); }}>Log out</button>
 </div>
 
 <!-- Bottom Sheets -->

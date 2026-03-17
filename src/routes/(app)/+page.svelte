@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { getTodayIndex } from '$lib/utils/date';
 	import {
-		getPlan, getDays, getDay, getExercises, getExercisesForDay,
+		getPlan, getDays, getDay, getExercisesForDay,
 		getPlannedSetsForDay, getSetLogsForDay, getAllSetLogs,
-		reloadWorkoutStore
+		reloadWorkoutStore, isLoaded
 	} from '$lib/stores/workout.svelte';
 	import { generatePlan } from '$lib/services/plan-generator';
 	import { saveGeneratedPlan } from '$lib/services/workout';
@@ -49,14 +49,14 @@
 	}
 
 	onMount(() => {
-		const hasPlan = localStorage.getItem('push_generated_plan');
-		if (!hasPlan) {
+		if (!isLoaded() || !localStorage.getItem('push_generated_plan')) {
 			triggerGeneration();
 			return;
 		}
 
 		try {
-			planSource = JSON.parse(hasPlan).source ?? null;
+			const raw = localStorage.getItem('push_generated_plan');
+			if (raw) planSource = JSON.parse(raw).source ?? null;
 		} catch {}
 
 		const params = new URLSearchParams(window.location.search);
@@ -66,11 +66,11 @@
 	});
 
 	const todayPlan = $derived(getDay(dayIndex));
-	const todayExercises = $derived(getExercisesForDay(todayPlan.id));
-	const todayPlannedSets = $derived(getPlannedSetsForDay(todayPlan.id));
-	const todaySetLogs = $derived(getSetLogsForDay(todayPlan.id));
+	const todayExercises = $derived(todayPlan ? getExercisesForDay(todayPlan.id) : []);
+	const todayPlannedSets = $derived(todayPlan ? getPlannedSetsForDay(todayPlan.id) : []);
+	const todaySetLogs = $derived(todayPlan ? getSetLogsForDay(todayPlan.id) : []);
 
-	const isTrainingDay = $derived(!todayPlan.is_rest_day);
+	const isTrainingDay = $derived(todayPlan ? !todayPlan.is_rest_day : false);
 
 	// Check-in: appears after all training days in the week are completed
 	const allTrainingDaysComplete = $derived(() => {
@@ -87,7 +87,7 @@
 	});
 	let checkInDismissed = $state(false);
 	const showCheckIn = $derived(
-		(forceCheckIn || allTrainingDaysComplete()) && !checkInDismissed && isCheckInPending(getPlan()!.id)
+		getPlan() && (forceCheckIn || allTrainingDaysComplete()) && !checkInDismissed && isCheckInPending(getPlan()!.id)
 	);
 	const completedSets = $derived(todaySetLogs.filter(s => s.completed).length);
 	const totalSets = $derived(todayPlannedSets.length);
@@ -108,7 +108,7 @@
 	});
 </script>
 
-{#if buildingPlan || generationError}
+{#if buildingPlan || generationError || !todayPlan}
 	<div class="today-page">
 		<PlanLoading error={generationError} onretry={retryGeneration} />
 	</div>

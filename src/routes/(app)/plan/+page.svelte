@@ -1,21 +1,23 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import WeekSchedule from '$lib/components/WeekSchedule.svelte';
 	import { computeWeekMomentum } from '$lib/utils/workout-stats';
 	import { getTodayIndex } from '$lib/utils/date';
-	import { getWeekHistories } from '$lib/services/history';
-	import { swapDays } from '$lib/stores/workout.svelte';
+	import { getCurrentWeekHistory, swapDays } from '$lib/stores/workout.svelte';
 	import type { WeekMomentum } from '$lib/types';
 
 	let momentum: WeekMomentum | null = $state(null);
 	let editing = $state(false);
 
 	function recompute() {
-		const histories = getWeekHistories();
-		momentum = computeWeekMomentum(histories, getTodayIndex());
+		const current = getCurrentWeekHistory();
+		if (!current) {
+			momentum = null;
+			return;
+		}
+		momentum = computeWeekMomentum([current], getTodayIndex());
 	}
 
-	onMount(recompute);
+	recompute();
 
 	function handleSwap(indexA: number, indexB: number) {
 		swapDays(indexA, indexB);
@@ -37,7 +39,12 @@
 	<WeekSchedule {momentum} editable={editing} onswap={handleSwap} />
 </div>
 {:else}
-<p style="padding:1rem;color:red;font-size:12px;">loading...</p>
+<div class="plan">
+	<div class="plan-header">
+		<h1>This Week</h1>
+	</div>
+	<p class="empty-state">No plan yet. Head to Today to generate one.</p>
+</div>
 {/if}
 
 <style>
@@ -78,5 +85,12 @@
 		font-size: 0.8125rem;
 		color: #999;
 		margin: -0.5rem 0 0;
+	}
+
+	.empty-state {
+		color: #999;
+		font-size: 0.9375rem;
+		text-align: center;
+		padding: 3rem 1rem;
 	}
 </style>
