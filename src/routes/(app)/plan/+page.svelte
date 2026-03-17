@@ -4,20 +4,37 @@
 	import { computeWeekMomentum } from '$lib/utils/workout-stats';
 	import { getTodayIndex } from '$lib/utils/date';
 	import { getWeekHistories } from '$lib/services/history';
-	import type { WeekHistory, WeekMomentum } from '$lib/types';
+	import { swapDays } from '$lib/stores/workout.svelte';
+	import type { WeekMomentum } from '$lib/types';
 
 	let momentum: WeekMomentum | null = $state(null);
+	let editing = $state(false);
 
-	onMount(() => {
+	function recompute() {
 		const histories = getWeekHistories();
 		momentum = computeWeekMomentum(histories, getTodayIndex());
-	});
+	}
+
+	onMount(recompute);
+
+	function handleSwap(indexA: number, indexB: number) {
+		swapDays(indexA, indexB);
+		recompute();
+	}
 </script>
 
 {#if momentum}
 <div class="plan">
-	<h1>This Week</h1>
-	<WeekSchedule {momentum} />
+	<div class="plan-header">
+		<h1>This Week</h1>
+		<button class="edit-btn" onclick={() => { editing = !editing; }}>
+			{editing ? 'Done' : 'Edit'}
+		</button>
+	</div>
+	{#if editing}
+		<p class="edit-hint">Tap two days to swap them</p>
+	{/if}
+	<WeekSchedule {momentum} editable={editing} onswap={handleSwap} />
 </div>
 {:else}
 <p style="padding:1rem;color:red;font-size:12px;">loading...</p>
@@ -33,10 +50,33 @@
 		gap: 1rem;
 	}
 
+	.plan-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-top: 0.5rem;
+	}
+
 	h1 {
 		font-size: 1.5rem;
 		font-weight: 800;
-		margin: 0.5rem 0 0;
-		text-align: center;
+		margin: 0;
+	}
+
+	.edit-btn {
+		background: none;
+		border: none;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: #000;
+		cursor: pointer;
+		padding: 0.25rem 0;
+		font-family: inherit;
+	}
+
+	.edit-hint {
+		font-size: 0.8125rem;
+		color: #999;
+		margin: -0.5rem 0 0;
 	}
 </style>

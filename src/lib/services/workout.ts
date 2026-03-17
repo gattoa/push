@@ -160,6 +160,32 @@ export async function getCurrentWeek(): Promise<CurrentWeekData> {
 	};
 }
 
+/** Persist a day swap to localStorage + Supabase. */
+export function persistDaySwap(updatedDays: PlannedDay[], allExercises: PlannedExercise[], allSets: PlannedSet[]): void {
+	if (typeof localStorage !== 'undefined') {
+		const raw = localStorage.getItem(GENERATED_PLAN_KEY);
+		if (raw) {
+			try {
+				const generated: GeneratedPlan = JSON.parse(raw);
+				generated.days = updatedDays;
+				generated.exercises = allExercises;
+				generated.sets = allSets;
+				localStorage.setItem(GENERATED_PLAN_KEY, JSON.stringify(generated));
+			} catch { /* ignore */ }
+		}
+	}
+
+	// Async Supabase update — just update day_of_week on each day
+	import('$lib/api/supabase').then(({ supabase }) => {
+		const updates = updatedDays.map(d =>
+			supabase.from('planned_days').update({ day_of_week: d.day_of_week }).eq('id', d.id)
+		);
+		Promise.all(updates).catch(e =>
+			console.warn('[Push] Supabase day swap failed:', e instanceof Error ? e.message : e)
+		);
+	});
+}
+
 /** Debounce timer for Supabase sync. */
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 

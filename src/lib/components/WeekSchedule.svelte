@@ -2,11 +2,15 @@
 	import type { WeekMomentum } from '$lib/types';
 	import { getTodayIndex } from '$lib/utils/date';
 
-	let { momentum }: {
+	let { momentum, editable = false, onswap }: {
 		momentum: WeekMomentum;
+		editable?: boolean;
+		onswap?: (indexA: number, indexB: number) => void;
 	} = $props();
 
 	const todayIndex = getTodayIndex();
+
+	let selectedIndex: number | null = $state(null);
 
 	const DAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -32,6 +36,20 @@
 		if (index < todayIndex) return 'missed';
 		return 'future';
 	}
+
+	function handleDayClick(index: number, event: Event) {
+		if (!editable) return;
+		event.preventDefault();
+
+		if (selectedIndex === null) {
+			selectedIndex = index;
+		} else if (selectedIndex === index) {
+			selectedIndex = null;
+		} else {
+			onswap?.(selectedIndex, index);
+			selectedIndex = null;
+		}
+	}
 </script>
 
 <div class="week-schedule">
@@ -39,29 +57,68 @@
 		{@const state = dayState(day, i)}
 		{@const iso = computeDayIso(day.dayOfWeek)}
 		{@const dateStr = computeDayDate(day.dayOfWeek)}
-		<a href="/session/{iso}" class="day-row {state}">
-			<div class="day-header">
-				<div class="day-label-group">
-					<span class="day-name">{DAY_LABELS[i]}</span>
-					<span class="day-date">{dateStr}</span>
+		{@const isSelected = editable && selectedIndex === i}
+		{#if editable}
+			<button
+				class="day-row {state}"
+				class:swap-selected={isSelected}
+				class:swap-mode={editable}
+				onclick={(e) => handleDayClick(i, e)}
+			>
+				<div class="day-header">
+					<div class="day-label-group">
+						{#if isSelected}
+							<span class="swap-indicator">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+									<path d="M4 6l4-4 4 4M4 10l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								</svg>
+							</span>
+						{/if}
+						<span class="day-name">{DAY_LABELS[i]}</span>
+						<span class="day-date">{dateStr}</span>
+					</div>
+					<div class="day-meta">
+						{#if day.completed}
+							<svg class="check-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
+								<polyline points="3,8 6.5,11.5 13,4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+							</svg>
+						{/if}
+						<span class="split-label">{day.label}</span>
+					</div>
 				</div>
-				<div class="day-meta">
-					{#if day.completed}
-						<svg class="check-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
-							<polyline points="3,8 6.5,11.5 13,4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-						</svg>
-					{/if}
-					<span class="split-label">{day.label}</span>
+				{#if !day.isRestDay && day.exerciseNames.length > 0}
+					<div class="exercise-list">
+						{#each day.exerciseNames as name}
+							<span class="exercise-name">{name}</span>
+						{/each}
+					</div>
+				{/if}
+			</button>
+		{:else}
+			<a href="/session/{iso}" class="day-row {state}">
+				<div class="day-header">
+					<div class="day-label-group">
+						<span class="day-name">{DAY_LABELS[i]}</span>
+						<span class="day-date">{dateStr}</span>
+					</div>
+					<div class="day-meta">
+						{#if day.completed}
+							<svg class="check-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
+								<polyline points="3,8 6.5,11.5 13,4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+							</svg>
+						{/if}
+						<span class="split-label">{day.label}</span>
+					</div>
 				</div>
-			</div>
-			{#if !day.isRestDay && day.exerciseNames.length > 0}
-				<div class="exercise-list">
-					{#each day.exerciseNames as name}
-						<span class="exercise-name">{name}</span>
-					{/each}
-				</div>
-			{/if}
-		</a>
+				{#if !day.isRestDay && day.exerciseNames.length > 0}
+					<div class="exercise-list">
+						{#each day.exerciseNames as name}
+							<span class="exercise-name">{name}</span>
+						{/each}
+					</div>
+				{/if}
+			</a>
+		{/if}
 	{/each}
 </div>
 
@@ -85,8 +142,31 @@
 		-webkit-tap-highlight-color: transparent;
 	}
 
-	.day-row:active {
+	a.day-row:active {
 		transform: scale(0.99);
+	}
+
+	button.day-row {
+		width: 100%;
+		text-align: left;
+		font-family: inherit;
+		cursor: pointer;
+	}
+
+	button.day-row.swap-mode {
+		transition: border-color 0.15s ease, background 0.15s ease;
+	}
+
+	button.day-row.swap-selected {
+		border-color: #000;
+		border-width: 2px;
+		background: #f5f5f5;
+	}
+
+	.swap-indicator {
+		display: flex;
+		align-items: center;
+		color: #000;
 	}
 
 	.day-header {
@@ -244,5 +324,22 @@
 
 	.day-row.rest .split-label {
 		color: #ddd;
+	}
+
+	/* Swap selected overrides for dark rows */
+	button.day-row.swap-selected.completed,
+	button.day-row.swap-selected.completed-today {
+		background: #222;
+	}
+
+	.swap-indicator {
+		display: flex;
+		align-items: center;
+		color: #000;
+	}
+
+	button.day-row.completed .swap-indicator,
+	button.day-row.completed-today .swap-indicator {
+		color: #fff;
 	}
 </style>

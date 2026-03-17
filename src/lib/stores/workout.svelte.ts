@@ -1,5 +1,5 @@
 import type { WeeklyPlan, PlannedDay, PlannedExercise, PlannedSet, SetLog } from '$lib/types';
-import { getCurrentWeek, persistSetLogs } from '$lib/services/workout';
+import { getCurrentWeek, persistSetLogs, persistDaySwap } from '$lib/services/workout';
 
 // Single source of truth for the current week's workout state.
 // Both Today page and Exercise Detail read/write this store.
@@ -145,6 +145,23 @@ export function updateDropLog(setLogId: string, dropIndex: number, values: { act
 	if (values.actual_reps !== undefined) log.drop_logs[dropIndex].actual_reps = values.actual_reps;
 	if (values.actual_weight !== undefined) log.drop_logs[dropIndex].actual_weight = values.actual_weight;
 	persistSetLogs(setLogs);
+}
+
+export function swapDays(dayIndexA: number, dayIndexB: number): void {
+	const a = days[dayIndexA];
+	const b = days[dayIndexB];
+	if (!a || !b || dayIndexA === dayIndexB) return;
+
+	// Swap day_of_week between the two days
+	const tmpDow = a.day_of_week;
+	a.day_of_week = b.day_of_week;
+	b.day_of_week = tmpDow;
+
+	// Re-sort days array by day_of_week
+	days.sort((x, y) => x.day_of_week - y.day_of_week);
+
+	// Persist
+	persistDaySwap(days, exercises, plannedSets);
 }
 
 export function completeAllSets(exerciseId: string): void {
