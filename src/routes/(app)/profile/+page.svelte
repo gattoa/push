@@ -124,6 +124,13 @@
 		{/if}
 	{/if}
 
+	<button class="history-link" onclick={() => goto('/history')}>
+		<span>Training History</span>
+		<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+			<path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+		</svg>
+	</button>
+
 </div>
 
 <style>
@@ -273,6 +280,27 @@
 		font-size: 0.8125rem;
 		font-weight: 500;
 		color: #000;
+	}
+
+	.history-link {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		padding: 1rem;
+		background: #f8f8f8;
+		border: none;
+		border-radius: 12px;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: #000;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.15s ease;
+	}
+
+	.history-link:hover {
+		background: #f0f0f0;
 	}
 
 </style>
