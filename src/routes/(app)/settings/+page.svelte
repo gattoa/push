@@ -11,7 +11,7 @@
 	import { reloadWorkoutStore } from '$lib/stores/workout.svelte';
 	import type {
 		OnboardingData, ExperienceLevel, TrainingGoal, InjuryArea, Equipment,
-		AppPreferences, WeightUnit, ReviewDay, RestTimerSeconds
+		Gender, AppPreferences, WeightUnit, ReviewDay, RestTimerSeconds
 	} from '$lib/types';
 	import BottomSheet from '$lib/components/BottomSheet.svelte';
 	import SegmentedToggle from '$lib/components/SegmentedToggle.svelte';
@@ -37,7 +37,7 @@
 	});
 
 	let sheetOpen = $state({
-		age: false,
+		gender: false,
 		injuries: false,
 		experience: false,
 		days: false,
@@ -116,8 +116,8 @@
 	}
 
 	// Display labels
-	const ageLabels: Record<string, string> = {
-		under_35: '18–34', '35_50': '35–50', '50_plus': '51+'
+	const genderLabels: Record<string, string> = {
+		male: 'Male', female: 'Female', prefer_not_to_say: 'Prefer not to say'
 	};
 	const experienceLabels: Record<string, string> = {
 		beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced'
@@ -133,7 +133,12 @@
 
 	// Derived display values
 	let experienceDisplay = $derived(data.experienceLevel ? experienceLabels[data.experienceLevel] : 'Not set');
-	let ageDisplay = $derived(data.dateOfBirth ? data.dateOfBirth : 'Not set');
+	let genderDisplay = $derived(data.gender ? genderLabels[data.gender] : 'Not set');
+	let dobDisplay = $derived(
+		data.dateOfBirth
+			? new Date(data.dateOfBirth + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+			: 'Not set'
+	);
 	let daysDisplay = $derived(data.trainingDays ? `${data.trainingDays} days` : 'Not set');
 	let goalsDisplay = $derived(
 		data.goals.length > 0
@@ -168,10 +173,10 @@
 	);
 
 	// Option sets for bottom sheets
-	const ageOptions: { value: string | number; label: string }[] = [
-		{ value: 'under_35', label: '18–34' },
-		{ value: '35_50', label: '35–50' },
-		{ value: '50_plus', label: '51+' }
+	const genderOptions: { value: string | number; label: string }[] = [
+		{ value: 'male', label: 'Male' },
+		{ value: 'female', label: 'Female' },
+		{ value: 'prefer_not_to_say', label: 'Prefer not to say' }
 	];
 	const experienceOptions: { value: string | number; label: string }[] = [
 		{ value: 'beginner', label: 'Beginner' },
@@ -272,9 +277,21 @@
 	<div class="group">
 		<p class="group-label">About You</p>
 		<div class="card">
-			<button class="row" onclick={() => sheetOpen.age = true}>
-				<span class="row-label">Age range</span>
-				<span class="row-value">{ageDisplay}</span>
+			<label class="row static">
+				<span class="row-label">Date of birth</span>
+				<input
+					type="date"
+					class="date-input"
+					value={data.dateOfBirth ?? ''}
+					onchange={(e) => { data.dateOfBirth = e.currentTarget.value || null; markChanged(); }}
+				/>
+			</label>
+
+			<div class="divider"></div>
+
+			<button class="row" onclick={() => sheetOpen.gender = true}>
+				<span class="row-label">Gender</span>
+				<span class="row-value">{genderDisplay}</span>
 			</button>
 
 			<div class="divider"></div>
@@ -382,10 +399,10 @@
 
 <!-- Bottom Sheets -->
 <BottomSheet
-	bind:open={sheetOpen.age}
-	title="Date of Birth"
-	options={ageOptions}
-	bind:value={data.dateOfBirth}
+	bind:open={sheetOpen.gender}
+	title="Gender"
+	options={genderOptions}
+	bind:value={data.gender}
 	onchange={markChanged}
 />
 
@@ -588,6 +605,17 @@
 
 	.row-value.muted {
 		color: #bbb;
+	}
+
+	.date-input {
+		font-size: 0.9375rem;
+		color: #666;
+		background: none;
+		border: none;
+		font-family: inherit;
+		text-align: right;
+		margin-left: auto;
+		cursor: pointer;
 	}
 
 	.truncate {

@@ -2,10 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import type { OnboardingData, TrainingGoal, AppPreferences } from '$lib/types';
-	import { getWeekHistories } from '$lib/services/history';
+	import type { OnboardingData, TrainingGoal } from '$lib/types';
+	import { getCurrentWeekHistory } from '$lib/stores/workout.svelte';
 	import { computeWeekMomentum } from '$lib/utils/workout-stats';
 	import { getTodayIndex } from '$lib/utils/date';
+	import { getUserId } from '$lib/utils/auth';
+	import { fetchSettings } from '$lib/services/settings-sync';
 	import WeekCard from '$lib/components/WeekCard.svelte';
 	import MuscleCard from '$lib/components/MuscleCard.svelte';
 
@@ -26,26 +28,23 @@
 		injuries: []
 	});
 
-	onMount(() => {
-		const histories = getWeekHistories();
-		momentum = computeWeekMomentum(histories, getTodayIndex());
-		const rawData = localStorage.getItem('push_onboarding_data');
-		if (rawData) {
-			try {
-				const parsed = JSON.parse(rawData);
-				if (parsed.ageRange && !parsed.dateOfBirth) {
-					const midpoints: Record<string, string> = {
-						under_35: '1998-01-01',
-						'35_50': '1982-01-01',
-						'50_plus': '1970-01-01'
-					};
-					parsed.dateOfBirth = midpoints[parsed.ageRange] ?? null;
-					delete parsed.ageRange;
-				}
-				if (!parsed.gender) parsed.gender = null;
-				data = parsed;
-				localStorage.setItem('push_onboarding_data', JSON.stringify(data));
-			} catch { /* ignore */ }
+	onMount(async () => {
+		// Load real workout data from store (no mock data)
+		const current = getCurrentWeekHistory();
+		if (current) {
+			momentum = computeWeekMomentum([current], getTodayIndex());
+		}
+
+		// Load onboarding data from Supabase/localStorage
+		try {
+			const userId = await getUserId();
+			const settings = await fetchSettings(userId);
+			data = settings.onboardingData;
+		} catch {
+			const rawData = localStorage.getItem('push_onboarding_data');
+			if (rawData) {
+				try { data = JSON.parse(rawData); } catch { /* ignore */ }
+			}
 		}
 	});
 
