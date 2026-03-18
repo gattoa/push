@@ -64,17 +64,15 @@
 	}
 
 	async function generate() {
-		localStorage.setItem('push_onboarding_complete', 'true');
 		localStorage.setItem('push_onboarding_data', JSON.stringify(data));
-		await supabase.auth.updateUser({ data: { onboarding_complete: true } });
 
-		// Sync settings to Supabase
-		try {
-			const userId = await getUserId();
-			await saveSettings(userId, data, { reviewDay: 6, units: 'lbs', restTimerDefault: 90 });
-		} catch (e) {
-			console.warn('[Push] Settings sync on onboarding failed:', e instanceof Error ? e.message : e);
-		}
+		// Save settings to Supabase FIRST — the app layout guard checks this exists
+		const userId = await getUserId();
+		await saveSettings(userId, data, { reviewDay: 6, units: 'lbs', restTimerDefault: 90 });
+
+		// Only mark onboarding complete AFTER settings are persisted
+		localStorage.setItem('push_onboarding_complete', 'true');
+		await supabase.auth.updateUser({ data: { onboarding_complete: true } });
 
 		goto('/');
 	}
