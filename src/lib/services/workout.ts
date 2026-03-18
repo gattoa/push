@@ -79,7 +79,7 @@ function cacheToLocalStorage(data: CurrentWeekData): void {
 		days: data.days,
 		exercises: data.exercises,
 		sets: data.plannedSets,
-		source: data.plan.source ?? 'mock'
+		source: data.plan.source ?? 'ai'
 	};
 	localStorage.setItem(GENERATED_PLAN_KEY, JSON.stringify({ ...generated, week_start: data.plan.week_start }));
 	localStorage.setItem(SET_LOGS_KEY, JSON.stringify(data.setLogs));

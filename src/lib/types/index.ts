@@ -29,7 +29,7 @@ export interface WeeklyPlan {
 	user_id: string;
 	week_start: string; // ISO date, always a Monday
 	review_day: number; // 0=Sun, 1=Mon ... 6=Sat. Default 0
-	source?: 'ai' | 'mock';
+	source?: 'ai';
 	created_at: string;
 }
 
@@ -286,7 +286,7 @@ export interface GeneratedPlan {
 	days: PlannedDay[];
 	exercises: PlannedExercise[];
 	sets: PlannedSet[];
-	source: 'ai' | 'mock';
+	source: 'ai';
 }
 
 // === ExerciseDB API types ===
