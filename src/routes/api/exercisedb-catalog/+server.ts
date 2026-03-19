@@ -2,6 +2,8 @@ import { json } from '@sveltejs/kit';
 import { getExercisesByEquipment } from '$lib/api/exercisedb';
 import type { Equipment } from '$lib/types';
 
+export const config = { maxDuration: 30 };
+
 /** Map user equipment selections to ExerciseDB equipment names */
 const EQUIPMENT_MAP: Record<Equipment, string[]> = {
 	bodyweight: ['body weight'],

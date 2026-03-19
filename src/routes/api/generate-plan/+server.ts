@@ -2,6 +2,8 @@ import { json } from '@sveltejs/kit';
 import { anthropic } from '$lib/api/anthropic';
 import type { OnboardingData, GeneratedPlan, InjuryArea } from '$lib/types';
 
+export const config = { maxDuration: 60 };
+
 // Hard-coded safety constraints (research: must not be soft suggestions)
 const INJURY_EXCLUSIONS: Record<InjuryArea, string[]> = {
 	shoulder: ['Seated Shoulder Press', 'Lateral Raise', 'Chest Dip', 'Arnold Press'],
