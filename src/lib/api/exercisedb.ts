@@ -59,24 +59,9 @@ export async function getAllExerciseTypes() {
 }
 
 export async function getExercisesByEquipment(equipment: string) {
-	const all: unknown[] = [];
-	let cursor: string | null = null;
-	const MAX_PAGES = 4; // Safety cap: 4 pages × 25 = 100 exercises max per equipment type
-
-	for (let page = 0; page < MAX_PAGES; page++) {
-		const params = new URLSearchParams({ equipment, limit: '25' });
-		if (cursor) params.set('cursor', cursor);
-
-		const response = await fetchExerciseDB(`/exercises?${params}`);
-		const result = await response.json();
-
-		if (Array.isArray(result.data)) {
-			all.push(...result.data);
-		}
-
-		if (!result.meta?.hasNextPage || !result.meta?.nextCursor) break;
-		cursor = result.meta.nextCursor;
-	}
-
-	return all;
+	// Single page — 25 exercises per equipment type is sufficient for plan generation.
+	// No pagination to conserve API quota (100 calls/day limit).
+	const response = await fetchExerciseDB(`/exercises?equipment=${encodeURIComponent(equipment)}&limit=25`);
+	const result = await response.json();
+	return Array.isArray(result.data) ? result.data : [];
 }
