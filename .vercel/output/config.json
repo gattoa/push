@@ -1,0 +1,89 @@
+{
+	"version": 3,
+	"routes": [
+		{
+			"src": ".*",
+			"continue": true,
+			"transforms": [
+				{
+					"type": "request.query",
+					"op": "delete",
+					"target": {
+						"key": "__pathname"
+					}
+				}
+			]
+		},
+		{
+			"src": "/_app/immutable/.+",
+			"headers": {
+				"cache-control": "public, immutable, max-age=31536000"
+			}
+		},
+		{
+			"handle": "filesystem"
+		},
+		{
+			"src": "/_app/immutable/.+",
+			"status": 404,
+			"continue": false
+		},
+		{
+			"src": "^/?(?:/__data.json)?$",
+			"dest": "/(app)"
+		},
+		{
+			"src": "^/api/exercisedb-catalog/?(?:/__data.json)?$",
+			"dest": "/api/exercisedb-catalog"
+		},
+		{
+			"src": "^/api/exercisedb-search/?(?:/__data.json)?$",
+			"dest": "/api/exercisedb-search"
+		},
+		{
+			"src": "^/api/generate-plan/?(?:/__data.json)?$",
+			"dest": "/api/generate-plan"
+		},
+		{
+			"src": "^/auth/callback/?(?:/__data.json)?$",
+			"dest": "/auth/callback"
+		},
+		{
+			"src": "^/exercise/([^/]+?)/?(?:/__data.json)?$",
+			"dest": "/(app)/exercise/[id]"
+		},
+		{
+			"src": "^/history/?(?:/__data.json)?$",
+			"dest": "/(app)/history"
+		},
+		{
+			"src": "^/login/?(?:/__data.json)?$",
+			"dest": "/(auth)/login"
+		},
+		{
+			"src": "^/onboarding/?(?:/__data.json)?$",
+			"dest": "/(onboarding)/onboarding"
+		},
+		{
+			"src": "^/plan/?(?:/__data.json)?$",
+			"dest": "/(app)/plan"
+		},
+		{
+			"src": "^/profile/?(?:/__data.json)?$",
+			"dest": "/(app)/profile"
+		},
+		{
+			"src": "^/session/([^/]+?)/?(?:/__data.json)?$",
+			"dest": "/(app)/session/[date]"
+		},
+		{
+			"src": "^/settings/?(?:/__data.json)?$",
+			"dest": "/(app)/settings"
+		},
+		{
+			"src": "/.*",
+			"dest": "/![-]/catchall"
+		}
+	],
+	"overrides": {}
+}

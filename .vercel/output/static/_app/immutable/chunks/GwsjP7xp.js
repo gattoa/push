@@ -1,0 +1,1 @@
+const t="push_preferences",e={reviewDay:6,units:"lbs",restTimerDefault:90};function n(){if(typeof window>"u")return e;const r=localStorage.getItem(t);if(!r)return e;try{return{...e,...JSON.parse(r)}}catch{return e}}export{n as g};

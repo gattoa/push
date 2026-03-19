@@ -1,0 +1,1 @@
+import{supabase as a}from"./msCLaqp_.js";const r="push_device_id";function o(){if(typeof localStorage>"u")return"";let t=localStorage.getItem(r);return t||(t=crypto.randomUUID(),localStorage.setItem(r,t)),t}async function n(){var t;try{const{data:{session:e}}=await a.auth.getSession();if((t=e==null?void 0:e.user)!=null&&t.id)return e.user.id}catch{}return o()}export{n as g};
