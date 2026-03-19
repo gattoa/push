@@ -57,3 +57,9 @@ export async function getAllExerciseTypes() {
 	const result = await response.json();
 	return result.data;
 }
+
+export async function getExercisesByEquipment(equipment: string) {
+	const response = await fetchExerciseDB(`/exercises/equipment/${encodeURIComponent(equipment)}?limit=0`);
+	const result = await response.json();
+	return result.data;
+}

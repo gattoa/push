@@ -603,10 +603,6 @@
 		text-align: right;
 	}
 
-	.row-value.muted {
-		color: #bbb;
-	}
-
 	.date-input {
 		font-size: 0.9375rem;
 		color: #666;

@@ -1,7 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { anthropic } from '$lib/api/anthropic';
-import exerciseCatalog from '$lib/data/exercises.json';
-import type { OnboardingData, GeneratedPlan, PlannedDay, PlannedExercise, PlannedSet, InjuryArea, Equipment } from '$lib/types';
+import type { OnboardingData, GeneratedPlan, InjuryArea } from '$lib/types';
 
 // Hard-coded safety constraints (research: must not be soft suggestions)
 const INJURY_EXCLUSIONS: Record<InjuryArea, string[]> = {
@@ -26,27 +25,7 @@ interface CatalogExercise {
 	equipments: string[];
 }
 
-// Map user equipment selections to ExerciseDB equipment names
-const EQUIPMENT_MAP: Record<Equipment, string[]> = {
-	bodyweight: ['BODY WEIGHT'],
-	dumbbells: ['DUMBBELL'],
-	barbell: ['BARBELL'],
-	cable_machine: ['CABLE'],
-	full_gym: ['BODY WEIGHT', 'DUMBBELL', 'BARBELL', 'CABLE']
-};
-
-function getAllowedEquipment(userEquipment: Equipment[]): Set<string> {
-	// Bodyweight is always available
-	const allowed = new Set<string>(['BODY WEIGHT']);
-	for (const eq of userEquipment) {
-		for (const mapped of EQUIPMENT_MAP[eq] ?? []) {
-			allowed.add(mapped);
-		}
-	}
-	return allowed;
-}
-
-function getAvailableExercises(injuries: InjuryArea[], equipment: Equipment[]): CatalogExercise[] {
+function getAvailableExercises(catalog: CatalogExercise[], injuries: InjuryArea[]): CatalogExercise[] {
 	const excluded = new Set<string>();
 	for (const injury of injuries) {
 		for (const name of INJURY_EXCLUSIONS[injury] ?? []) {
@@ -54,19 +33,8 @@ function getAvailableExercises(injuries: InjuryArea[], equipment: Equipment[]): 
 		}
 	}
 
-	const allowedEquipment = getAllowedEquipment(equipment);
-
-	return (exerciseCatalog as CatalogExercise[])
-		.filter((e) => !excluded.has(e.name))
-		.filter((e) => e.equipments.every(eq => allowedEquipment.has(eq)))
-		.map((e) => ({
-			exerciseId: e.exerciseId,
-			name: e.name,
-			bodyParts: e.bodyParts,
-			targetMuscles: e.targetMuscles,
-			secondaryMuscles: e.secondaryMuscles,
-			equipments: e.equipments
-		}));
+	// Catalog is already filtered by equipment from the catalog endpoint
+	return catalog.filter((e) => !excluded.has(e.name));
 }
 
 function classifyExercise(e: CatalogExercise): 'push' | 'pull' | 'legs' | 'core' {
@@ -295,8 +263,13 @@ function validatePlan(plan: GeneratedPlan, data: OnboardingData, availableExerci
 
 export async function POST({ request }) {
 	try {
-		const data: OnboardingData = await request.json();
-		const availableExercises = getAvailableExercises(data.injuries, data.equipment ?? []);
+		const { data, catalog }: { data: OnboardingData; catalog: CatalogExercise[] } = await request.json();
+
+		if (!Array.isArray(catalog) || catalog.length === 0) {
+			return json({ success: false, error: 'No exercise catalog provided' }, { status: 400 });
+		}
+
+		const availableExercises = getAvailableExercises(catalog, data.injuries);
 		const systemPrompt = buildSystemPrompt(data, availableExercises);
 
 		const response = await anthropic.messages.create({

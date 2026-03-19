@@ -49,10 +49,10 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div class="overlay" onclick={close}>
-		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-		<div class="viewer" onclick={(e) => e.stopPropagation()}>
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div class="overlay" role="dialog" aria-label="Photo viewer" tabindex="-1" onclick={close}>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div class="viewer" role="presentation" onclick={(e) => e.stopPropagation()}>
 			<button class="close-btn" onclick={close}>✕</button>
 			{#if loading}
 				<div class="loading">Loading...</div>
