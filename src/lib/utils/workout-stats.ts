@@ -460,8 +460,9 @@ export const BODY_REGIONS: Record<string, string[]> = {
 };
 
 export function getBodyRegion(bodyPart: string): string {
+	const upper = bodyPart.toUpperCase();
 	for (const [region, parts] of Object.entries(BODY_REGIONS)) {
-		if (parts.includes(bodyPart)) return region;
+		if (parts.includes(upper)) return region;
 	}
 	return 'Other';
 }
@@ -492,7 +493,7 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 			let volume = 0;
 
 			for (const ex of dayExercises) {
-				for (const bp of ex.body_parts) allBodyParts.add(bp);
+				for (const bp of ex.body_parts) allBodyParts.add(bp.toUpperCase());
 				if (ex.body_parts.length === 0 && !day.is_rest_day) {
 					unmappedSet.add(ex.exercise_name);
 				}
@@ -512,7 +513,8 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 							}
 						}
 
-						for (const bp of ex.body_parts) {
+						for (const rawBp of ex.body_parts) {
+							const bp = rawBp.toUpperCase();
 							dayBodyParts.add(bp);
 							bodyPartsHit.set(bp, (bodyPartsHit.get(bp) ?? 0) + exSetLogs.length);
 
@@ -525,7 +527,8 @@ export function computeWeekMomentum(weeks: WeekHistory[], todayIndex?: number): 
 						}
 					} else if (todayIndex !== undefined && day.day_of_week >= todayIndex) {
 						// No completed sets, today or future → scheduled
-						for (const bp of ex.body_parts) {
+						for (const rawBp of ex.body_parts) {
+							const bp = rawBp.toUpperCase();
 							if (!bodyPartsScheduled.has(bp)) bodyPartsScheduled.set(bp, []);
 							bodyPartsScheduled.get(bp)!.push({
 								exerciseName: ex.exercise_name,

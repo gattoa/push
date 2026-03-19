@@ -59,7 +59,24 @@ export async function getAllExerciseTypes() {
 }
 
 export async function getExercisesByEquipment(equipment: string) {
-	const response = await fetchExerciseDB(`/exercises/equipment/${encodeURIComponent(equipment)}?limit=0`);
-	const result = await response.json();
-	return result.data;
+	const all: unknown[] = [];
+	let cursor: string | null = null;
+
+	// Cursor-paginate through all results (max 25 per page)
+	while (true) {
+		const params = new URLSearchParams({ equipment, limit: '25' });
+		if (cursor) params.set('cursor', cursor);
+
+		const response = await fetchExerciseDB(`/exercises?${params}`);
+		const result = await response.json();
+
+		if (Array.isArray(result.data)) {
+			all.push(...result.data);
+		}
+
+		if (!result.meta?.hasNextPage || !result.meta?.nextCursor) break;
+		cursor = result.meta.nextCursor;
+	}
+
+	return all;
 }

@@ -4,11 +4,11 @@ import type { Equipment } from '$lib/types';
 
 /** Map user equipment selections to ExerciseDB equipment names */
 const EQUIPMENT_MAP: Record<Equipment, string[]> = {
-	bodyweight: ['BODY WEIGHT'],
-	dumbbells: ['DUMBBELL'],
-	barbell: ['BARBELL'],
-	cable_machine: ['CABLE'],
-	full_gym: ['BODY WEIGHT', 'DUMBBELL', 'BARBELL', 'CABLE']
+	bodyweight: ['body weight'],
+	dumbbells: ['dumbbell'],
+	barbell: ['barbell'],
+	cable_machine: ['cable'],
+	full_gym: ['body weight', 'dumbbell', 'barbell', 'cable']
 };
 
 export interface CatalogExercise {
@@ -25,7 +25,7 @@ export async function POST({ request }) {
 		const { equipment }: { equipment: Equipment[] } = await request.json();
 
 		// Build unique set of ExerciseDB equipment names (bodyweight always included)
-		const edbEquipment = new Set<string>(['BODY WEIGHT']);
+		const edbEquipment = new Set<string>(['body weight']);
 		for (const eq of equipment) {
 			for (const mapped of EQUIPMENT_MAP[eq] ?? []) {
 				edbEquipment.add(mapped);
@@ -50,12 +50,13 @@ export async function POST({ request }) {
 
 		for (const exercises of results) {
 			if (!Array.isArray(exercises)) continue;
-			for (const ex of exercises) {
-				if (seen.has(ex.exerciseId)) continue;
+			for (const raw of exercises) {
+				const ex = raw as { exerciseId?: string; name?: string; bodyParts?: string[]; targetMuscles?: string[]; secondaryMuscles?: string[]; equipments?: string[] };
+				if (!ex.exerciseId || seen.has(ex.exerciseId)) continue;
 				seen.add(ex.exerciseId);
 				catalog.push({
 					exerciseId: ex.exerciseId,
-					name: ex.name,
+					name: ex.name ?? '',
 					bodyParts: ex.bodyParts ?? [],
 					targetMuscles: ex.targetMuscles ?? [],
 					secondaryMuscles: ex.secondaryMuscles ?? [],
