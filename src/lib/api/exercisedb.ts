@@ -61,9 +61,9 @@ export async function getAllExerciseTypes() {
 export async function getExercisesByEquipment(equipment: string) {
 	const all: unknown[] = [];
 	let cursor: string | null = null;
+	const MAX_PAGES = 4; // Safety cap: 4 pages × 25 = 100 exercises max per equipment type
 
-	// Cursor-paginate through all results (max 25 per page)
-	while (true) {
+	for (let page = 0; page < MAX_PAGES; page++) {
 		const params = new URLSearchParams({ equipment, limit: '25' });
 		if (cursor) params.set('cursor', cursor);
 
